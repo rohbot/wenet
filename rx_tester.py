@@ -9,10 +9,10 @@
 import time, sys, os
 
 # Set to whatever resolution you want to test.
-file_path = "./test_images/%d_raw.ssdv" # _raw, _800x608, _640x480, _320x240
+file_path = "./test_images/%d_800x608.ssdv" # _raw, _800x608, _640x480, _320x240
 image_numbers = xrange(1,14)
 
-print_as_hex = True
+print_as_hex = False
 
 delay_time = 0.0239 # Approx time for one 256 byte packet at 115.2k baud
 

@@ -9,10 +9,11 @@
 #
 
 
-import os,sys, datetime, argparse
+import os,sys, datetime, argparse, socket
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--hex", action="store_true", help="Take Hex strings as input instead of raw data.")
+parser.add_argument("--partialupdate",default=0,help="Push partial updates every N packets to GUI.")
 args = parser.parse_args()
 
 # Helper functions to extract data from SSDV packets.
@@ -43,6 +44,11 @@ def ssdv_packet_info(packet):
 def ssdv_packet_string(packet_info):
 	return "SSDV: %s, Img:%d, Pkt:%d, %dx%d" % (packet_info['packet_type'],packet_info['image_id'],packet_info['packet_id'],packet_info['width'],packet_info['height'])
 
+
+def trigger_gui_update(filename):
+	gui_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+	gui_socket.sendto(filename,("127.0.0.1",7890))
+	gui_socket.close()
 
 # State variables
 current_image = -1
@@ -82,6 +88,7 @@ while True:
 				os.system("mv rxtemp.bin %s.ssdv" % current_packet_time)
 
 				# Update live displays here.
+				trigger_gui_update("%s.jpg" % current_packet_time)
 
 				# Trigger upload to habhub here.
 		else:
@@ -98,4 +105,13 @@ while True:
 	else:
 		# Write current packet into temp file.
 		temp_f.write(data)
+		current_packet_count += 1
+
+		if args.partialupdate != 0:
+			if current_packet_count % int(args.partialupdate) == 0:
+				# Run the SSDV decoder and push a partial update to the GUI.
+				temp_f.flush()
+				returncode = os.system("ssdv -d rxtemp.bin rxtemp.jpg")
+				if returncode == 0:
+					trigger_gui_update("rxtemp.jpg")
 

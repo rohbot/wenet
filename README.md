@@ -8,9 +8,11 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 * SSDV (https://github.com/fsphil/ssdv)
 * crcmod (pip install crcmod)
 * numpy (for debug output tests)
+* PyQt4 (for SSDV GUI)
 
 ## Main Programs
 * `rx_ssdv.py` - Reads in received packets (256 byte SSDV frames) via stdin, and decodes them to JPEGs. Also informs other processes (via UDP broadcast) of new data.
+* `rx_gui.py` - Displays last received image, as commanded by rx_ssdv.py via UDP.
 * `tx_picam.py` - TODO.
 
 ## Testing Scripts
@@ -23,3 +25,4 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 ### RX Testing
 * `rx_tester.py` produces a stream of packets on stdout, as would be received from the fsk_demod modem (from codec2 - still under development).
  * Run `python rx_tester.py | python rx_ssdv.py` to feed these test packets into the command-line ssdv rx script.
+ * add `--partialupdate N` to the above command to have rx_gui.py update every N received packets.
