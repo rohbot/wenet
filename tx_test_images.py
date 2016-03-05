@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 #	Test Transmitter Script
 #	Transmit a set of images from the test_images directory
@@ -10,6 +11,8 @@ import PacketTX,  sys, os
 # Set to whatever resolution you want to test.
 file_path = "./test_images/%d_800x608.ssdv" # _raw, _800x608, _640x480, _320x240
 image_numbers = xrange(1,14)
+
+debug_output = False # If True, packet bits are saved to debug.bin as one char per bit.
 
 def transmit_file(filename, tx_object):
 	file_size = os.path.getsize(filename)
@@ -31,7 +34,7 @@ def transmit_file(filename, tx_object):
 	tx_object.wait()
 
 
-tx = PacketTX.PacketTX()
+tx = PacketTX.PacketTX(debug=debug_output)
 tx.start_tx()
 
 for img in image_numbers:
