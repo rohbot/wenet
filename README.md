@@ -13,7 +13,7 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 ## Main Programs
 * `rx_ssdv.py` - Reads in received packets (256 byte SSDV frames) via stdin, and decodes them to JPEGs. Also informs other processes (via UDP broadcast) of new data.
 * `rx_gui.py` - Displays last received image, as commanded by rx_ssdv.py via UDP.
-* `tx_picam.py` - TODO.
+* `tx_picam.py` - Captures pictures using the PiCam, and transmits them.
 
 ## Testing Scripts
 * Run `python compress_test_images.py` from within ./test_images/ to produce the set of test ssdv-compressed files.
@@ -28,7 +28,7 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
  * add `--partialupdate N` to the above command to have rx_gui.py update every N received packets.
 
 ## Sending/Receiving Images
-### TX Site
+### TX Side
 * Run either `python tx_picam.py` (might need sudo) or `python tx_test_images.py` on the transmitter Raspberry Pi.
 
 ### RX Side
@@ -44,7 +44,7 @@ To be able to run a full receive chain, from SDR through to images, you'll need:
 
 * To receive the FSK data and display the images 'live', run:
  * In another terminal: `python rx_gui.py`, which will listen via UDP for new images to display.
- * Start the appropriate GNURadio Companion Flowgraph. This will block until a client connects to the TCP Sinks TCP socket.
+ * Start the appropriate GNURadio Companion Flowgraph. This will block until a client connects to the TCP Sinks TCP socket on port 9898.
  * Start the FSK modem with:
   * `nc localhost 9898 | ./fsk_demod 2X 8 921600 115200 - - | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
 
