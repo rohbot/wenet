@@ -79,16 +79,16 @@ while True:
 			# Attempt to decode current image, and write out to a file.
 			temp_f.close()
 			# Run SSDV
-			returncode = os.system("ssdv -d rxtemp.bin %s.jpg" % current_packet_time)
+			returncode = os.system("ssdv -d rxtemp.bin %s_%d.jpg" % (current_packet_time,current_image))
 			if returncode == 1:
 				print("ERROR: SSDV Decode failed!")
 			else:
 				print("SSDV Decoded OK!")
 				# Make a copy of the raw binary data.
-				os.system("mv rxtemp.bin %s.ssdv" % current_packet_time)
+				os.system("mv rxtemp.bin %s_%d.bin" % (current_packet_time,current_image))
 
 				# Update live displays here.
-				trigger_gui_update("%s.jpg" % current_packet_time)
+				trigger_gui_update("%s_%d.jpg" % (current_packet_time,current_image))
 
 				# Trigger upload to habhub here.
 		else:
