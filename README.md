@@ -48,3 +48,10 @@ To be able to run a full receive chain, from SDR through to images, you'll need:
  * Start the FSK modem with:
   * `nc localhost 9898 | ./fsk_demod 2X 8 921600 115200 - - | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
 
+### RX Without GNURadio
+It's possible to use csdr ( https://github.com/simonyiszk/csdr ) to perform the USB demodulation functions.
+
+Example:
+`rtl_sdr -s 1000000 -f 441000000 -g 20 - | csdr convert_u8_f | csdr bandpass_fir_fft_cc 0 0.4 0.1 | csdr fractional_decimator_ff 1.08506 | csdr realpart_cf | csdr convert_f_s16 | ./fsk_demod 2X 8 921600 115200 - - | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
+
+This gets samples from the rtl_sdr at 1MHz, performs bandpass and fractional decimation options (to get the required Rb*8 sample rate for fsk_demod), then throw away the imaginary part and converts to 16-bit shorts before passing the data to fsk_demod.
