@@ -1,5 +1,5 @@
 # HorusHighSpeed
-Modulator and glue code for the 100kbps SSDV experiment.
+Modulator and glue code for the 115kbps SSDV experiment.
 
 The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAMA0) is used to modulate a RFM22B in direct-asynchronous mode. I expect other transmitters could probably be used (i.e. NTX2's or similar) at lower bandwidths.
 
@@ -31,6 +31,9 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 ### TX Side
 * Run either `python tx_picam.py` (might need sudo) or `python tx_test_images.py` on the transmitter Raspberry Pi.
 
+#### IMPORTANT NOTE
+While the transit code requests an output baud rate of 115200 baud from the RPi's UART, the acheived baud rate (due to clock divisors) is actually 115386.843 baud (measured using a frequency counter). All of the resampling within the receive chain needs to be adjusted accordingly.
+
 ### RX Side
 To be able to run a full receive chain, from SDR through to images, you'll need:
 * GnuRadio + libraries for whatever SDR you plan on using.
@@ -46,12 +49,16 @@ To be able to run a full receive chain, from SDR through to images, you'll need:
  * In another terminal: `python rx_gui.py`, which will listen via UDP for new images to display.
  * Start the appropriate GNURadio Companion Flowgraph. This will block until a client connects to the TCP Sinks TCP socket on port 9898.
  * Start the FSK modem with:
-  * `nc localhost 9898 | ./fsk_demod 2X 8 921600 115200 - - | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
+  * `nc localhost 9898 | ./fsk_demod 2X 8 923096 115387 - - | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
 
 ### RX Without GNURadio
-It's possible to use csdr ( https://github.com/simonyiszk/csdr ) to perform the USB demodulation functions.
+It's possible to use csdr ( https://github.com/simonyiszk/csdr ) to perform the sideband demodulation and resampling functions:
 
-Example:
-`rtl_sdr -s 1000000 -f 441000000 -g 20 - | csdr convert_u8_f | csdr bandpass_fir_fft_cc 0 0.4 0.1 | csdr fractional_decimator_ff 1.08506 | csdr realpart_cf | csdr convert_f_s16 | ./fsk_demod 2X 8 921600 115200 - - | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
+Example (RTLSDR):
+`rtl_sdr -s 1000000 -f 441000000 -g 35 - | csdr convert_u8_f | csdr bandpass_fir_fft_cc 0 0.4 0.1 | csdr fractional_decimator_ff 1.08331 | csdr realpart_cf | csdr convert_f_s16 | ./fsk_demod 2X 8 923096 115387 - - | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
 
 This gets samples from the rtl_sdr at 1MHz, performs bandpass and fractional decimation options (to get the required Rb*8 sample rate for fsk_demod), then throw away the imaginary part and converts to 16-bit shorts before passing the data to fsk_demod.
+
+Example (AirSpy):
+`airspy_rx -f441.0 -r /dev/stdout -a 2500000 -h 21  | csdr convert_s16_f | csdr bandpass_fir_fft_cc 0 0.2 0.1 | csdr fractional_decimator_ff 2.708277 | csdr realpart_cf | csdr convert_f_s16 | ./fsk_demod 2X 8 923096 115387 - - | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
+

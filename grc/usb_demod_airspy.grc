@@ -46,7 +46,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>usb_demod_rtlsdr</value>
+      <value>usb</value>
     </param>
     <param>
       <key>max_nouts</key>
@@ -101,7 +101,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(168, 371)</value>
+      <value>(896, 219)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -152,7 +152,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>440.960e6</value>
+      <value>441.0e6</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -207,7 +207,7 @@
     </param>
     <param>
       <key>converver</key>
-      <value>int_converter</value>
+      <value>float_converter</value>
     </param>
     <param>
       <key>value</key>
@@ -219,7 +219,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(200, 251)</value>
+      <value>(11, 270)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -231,11 +231,11 @@
     </param>
     <param>
       <key>id</key>
-      <value>if_gain</value>
+      <value>gain</value>
     </param>
     <param>
       <key>label</key>
-      <value>IF Gain</value>
+      <value></value>
     </param>
     <param>
       <key>max</key>
@@ -278,7 +278,93 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(11, 270)</value>
+      <value>(928, 99)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>grid_pos</key>
+      <value></value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>if_gain</value>
+    </param>
+    <param>
+      <key>label</key>
+      <value>IF Gain</value>
+    </param>
+    <param>
+      <key>max</key>
+      <value>50</value>
+    </param>
+    <param>
+      <key>min</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>notebook</key>
+      <value></value>
+    </param>
+    <param>
+      <key>num_steps</key>
+      <value>125</value>
+    </param>
+    <param>
+      <key>style</key>
+      <value>wx.SL_HORIZONTAL</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(40, 395)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>out_samp_rate</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>923096</value>
+    </param>
+  </block>
+  <block>
+    <key>variable_slider</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>converver</key>
+      <value>int_converter</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>25</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(736, 123)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -341,7 +427,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>2e6</value>
+      <value>2.5e6</value>
     </param>
   </block>
   <block>
@@ -447,7 +533,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1080, 603)</value>
+      <value>(1072, 571)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -545,7 +631,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1072, 515)</value>
+      <value>(1048, 683)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -635,7 +721,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(880, 731)</value>
+      <value>(872, 867)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1958,7 +2044,7 @@
     </param>
     <param>
       <key>args</key>
-      <value></value>
+      <value>airspy</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -2113,7 +2199,7 @@
     </param>
     <param>
       <key>rrate</key>
-      <value>0.923096</value>
+      <value>out_samp_rate/(samp_rate/2)</value>
     </param>
     <param>
       <key>samp_delay</key>
@@ -2204,7 +2290,7 @@
     </param>
     <param>
       <key>fft_rate</key>
-      <value>5</value>
+      <value>15</value>
     </param>
     <param>
       <key>samp_rate</key>
@@ -2307,11 +2393,11 @@
     </param>
     <param>
       <key>fft_rate</key>
-      <value>5</value>
+      <value>15</value>
     </param>
     <param>
       <key>samp_rate</key>
-      <value>samp_rate/4</value>
+      <value>out_samp_rate</value>
     </param>
     <param>
       <key>title</key>
@@ -2362,7 +2448,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1048, 699)</value>
+      <value>(1048, 843)</value>
     </param>
     <param>
       <key>_rotation</key>
