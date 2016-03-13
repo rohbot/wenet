@@ -14,6 +14,8 @@ from time import sleep
 from threading import Thread
 import numpy as np
 
+# Alternate output module, which writes transmitted data as one-bit-per-char (i.e. 0 = 0x00, 1 = 0x01)
+# to a file. Very useful for debugging.
 class BinaryDebug(object):
 	def __init__(self):
 		self.f = open("debug.bin",'wb')
@@ -42,7 +44,7 @@ class PacketTX(object):
 
 
 	def __init__(self,serial_port="/dev/ttyAMA0", serial_baud=115200, payload_length=256, debug = False):
-
+		# WARNING: 115200 baud is ACTUALLY 115386.834 baud, as measured using a freq counter.
 		if debug == True:
 			self.s = BinaryDebug()
 			self.debug = True

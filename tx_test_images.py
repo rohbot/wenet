@@ -36,10 +36,13 @@ def transmit_file(filename, tx_object):
 
 tx = PacketTX.PacketTX(debug=debug_output)
 tx.start_tx()
-
-for img in image_numbers:
-	filename = file_path % img
-	print("\nTXing: %s" % filename)
-	transmit_file(filename,tx)
-
-tx.close()
+print("TX Started. Press Ctrl-C to stop.")
+try:
+	while True:
+		for img in image_numbers:
+			filename = file_path % img
+			print("\nTXing: %s" % filename)
+			transmit_file(filename,tx)
+except KeyboardInterrupt:
+	print("Closing...")
+	tx.close()
