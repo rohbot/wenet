@@ -251,9 +251,9 @@ class RFM22B(object):
 if __name__ == '__main__':
 	rfm = RFM22B()
 	rfm.set_tx_power(TXPOW.TXPOW_14DBM | 0x08)
-	rfm.set_frequency(441.2E6)
+	rfm.set_frequency(441.2E6) # 441.2MHz.
 	rfm.write_register(REG.GPIO2_CONFIGURATION,0x30) # TX Data In
-	rfm.set_bulk(CONFIGS.REGISTERS,CONFIGS.DIRECT_120K)
+	rfm.set_bulk(CONFIGS.REGISTERS,CONFIGS.DIRECT_120K) # Direct Asynchronous mode, ~120KHz tone spacing.
 	rfm.set_mode(0x09)
 	rfm.close()
 
