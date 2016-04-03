@@ -76,7 +76,7 @@ def ldpc_encode_string(payload,Nibits=2064,Npbits=516,Nwt=12,hrows=hrows_2064):
 
     parity = ldpc_encode(ibits,Nibits,Npbits,Nwt,hrows)
 
-    return payload + np.packbits(parity.astype(np.uint8)).tostring()
+    return np.packbits(parity.astype(np.uint8)).tostring()
 
 
 #
@@ -86,22 +86,21 @@ def ldpc_encode_string(payload,Nibits=2064,Npbits=516,Nwt=12,hrows=hrows_2064):
 def generate_dummy_packet():
     payload = np.arange(0,256,1)
     payload = np.append(payload,[0,0]).astype(np.uint8).tostring() # Add on dummy checksum, for a total of 258 bytes.
-    raw_data = np.array([],dtype=np.uint8)
-    for d in payload:
-        d_array = np.unpackbits(np.fromstring(d,dtype=np.uint8))
-        raw_data = np.concatenate((raw_data,d_array))
-
-    return raw_data
+    return payload
 
 #@profile
 def main():
     # Generate a dummy test packet, and convert it to an array of 0 and 1.
     payload = generate_dummy_packet()
 
-    # Now run ldpc_encode over it X times.
-    for x in xrange(100):
-        parity = ldpc_encode(payload)
+    print("Input (hex): %s" % ("".join("{:02x}".format(ord(c)) for c in payload)))
 
+    # Now run ldpc_encode over it X times.
+    parity = ""
+    for x in xrange(100):
+        parity = ldpc_encode_string(payload)
+
+    print("LDPC Parity Bits (hex): %s" % ("".join("{:02x}".format(ord(c)) for c in parity)))
     print("Done!")
 
 # Some basic test code.
