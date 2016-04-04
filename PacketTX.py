@@ -13,6 +13,7 @@ import serial,Queue,sys,crcmod,struct
 from time import sleep
 from threading import Thread
 import numpy as np
+from ldpc_encoder import *
 
 # Alternate output module, which writes transmitted data as one-bit-per-char (i.e. 0 = 0x00, 1 = 0x01)
 # to a file. Very useful for debugging.
@@ -43,7 +44,7 @@ class PacketTX(object):
 	idle_sequence = "\x55"*256
 
 
-	def __init__(self,serial_port="/dev/ttyAMA0", serial_baud=115200, payload_length=256, debug = False):
+	def __init__(self,serial_port="/dev/ttyAMA0", serial_baud=115200, payload_length=256, fec=False, debug = False):
 		# WARNING: 115200 baud is ACTUALLY 115386.834 baud, as measured using a freq counter.
 		if debug == True:
 			self.s = BinaryDebug()
@@ -53,6 +54,7 @@ class PacketTX(object):
 		self.payload_length = payload_length
 
 		self.crc16 = crcmod.predefined.mkCrcFun('crc-ccitt-false')
+		self.fec = fec
 
 	def start_tx(self):
 		self.transmit_active = True
@@ -68,7 +70,11 @@ class PacketTX(object):
 			packet = packet + "\x00"*(self.payload_length - len(packet))
 
 		crc = struct.pack("<H",self.crc16(packet))
-		return self.preamble + self.unique_word + packet + crc 
+
+		if self.fec:
+			return self.preamble + self.unique_word + packet + crc + ldpc_encode_string(packet+crc)
+		else:
+			return self.preamble + self.unique_word + packet + crc 
 
 
 	def tx_thread(self):

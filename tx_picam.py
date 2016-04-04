@@ -6,7 +6,7 @@
 #	Mark Jessop <vk5qi@rfhead.net>
 #
 
-import PacketTX,  sys, os
+import PacketTX,  sys, os, datetime
 
 # Set to whatever resolution you want to transmit.
 tx_resolution = "1024x768"
@@ -44,12 +44,13 @@ try:
 	while True:
 		# Capture image using PiCam
 		print("Capturing Image...")
-		os.system("raspistill -t 100 -o temp.jpg -vf -hf -w 1024 -h 768")
+		capture_time = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
+		os.system("raspistill -t 100 -o ./tx_images/%s.jpg -vf -hf -w 1024 -h 768" % capture_time)
 		# Resize using convert
 		print("Processing...")
 		#os.system("convert temp.jpg -resize %s\! temp.jpg" % tx_resolution)
 		# SSDV'ify the image.
-		os.system("ssdv -e -c %s -i %d temp.jpg temp.ssdv" % (callsign,image_id))
+		os.system("ssdv -e -c %s -i %d ./tx_images/%s.jpg temp.ssdv" % (callsign,image_id,capture_time))
 		# Transmit image
 		print("Transmitting...")
 		transmit_file("temp.ssdv",tx)
