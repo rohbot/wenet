@@ -249,9 +249,27 @@ class RFM22B(object):
 		self.write_register(REG.OPERATING_FUNCTION_CONTROL_1,mode)
 
 if __name__ == '__main__':
+
+	# Attempt to extract a frequency from the first argument:
+	if len(sys.argv)<2:
+		print("Usage: \tpython init_rfm22b.py <TX Frequency in MHz>")
+		print("Example: \tpython init_rfm22b.py 441.200")
+		sys.exit(1)
+
+	try:
+		tx_freq = float(sys.argv[1])
+	except:
+		print("Unable to parse input.")
+
+	if tx_freq>450.0 or tx_freq<430.00:
+		print("Frequency out of 70cm band, using default.")
+		tx_freq = 441.200*1e6
+	else:
+		tx_freq = tx_freq*1e6
+
 	rfm = RFM22B()
 	rfm.set_tx_power(TXPOW.TXPOW_14DBM | 0x08)
-	rfm.set_frequency(441.2E6) # 441.2MHz.
+	rfm.set_frequency(tx_freq)
 	rfm.write_register(REG.GPIO2_CONFIGURATION,0x30) # TX Data In
 	rfm.set_bulk(CONFIGS.REGISTERS,CONFIGS.DIRECT_120K) # Direct Asynchronous mode, ~120KHz tone spacing.
 	rfm.set_mode(0x09)

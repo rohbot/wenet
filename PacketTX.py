@@ -44,7 +44,7 @@ class PacketTX(object):
 	idle_sequence = "\x55"*256
 
 
-	def __init__(self,serial_port="/dev/ttyAMA0", serial_baud=115200, payload_length=256, fec=False, debug = False):
+	def __init__(self,serial_port="/dev/ttyAMA0", serial_baud=115200, payload_length=256, fec=False, debug = False, callsign="N0CALL"):
 		# WARNING: 115200 baud is ACTUALLY 115386.834 baud, as measured using a freq counter.
 		if debug == True:
 			self.s = BinaryDebug()
@@ -55,13 +55,14 @@ class PacketTX(object):
 
 		self.crc16 = crcmod.predefined.mkCrcFun('crc-ccitt-false')
 		self.fec = fec
+		self.callsign = callsign
 
 	def start_tx(self):
 		self.transmit_active = True
 		txthread = Thread(target=self.tx_thread)
 		txthread.start()
 
-	def frame_packet(self,packet):
+	def frame_packet(self,packet, fec=False):
 		# Ensure payload size is equal to the desired payload length
 		if len(packet) > self.payload_length:
 			packet = packet[:self.payload_length]
@@ -71,10 +72,23 @@ class PacketTX(object):
 
 		crc = struct.pack("<H",self.crc16(packet))
 
-		if self.fec:
+		if fec:
 			return self.preamble + self.unique_word + packet + crc + ldpc_encode_string(packet+crc)
 		else:
 			return self.preamble + self.unique_word + packet + crc 
+
+	# Either generate an idle message, or read one in from a file (tx_idle_message.txt) if it exists.
+	# This might be a useful way of getting error messages down from the payload.
+	def generate_idle_message(self):
+		# Try and read in a message from a file.
+		try:
+			f = open("tx_idle_message.txt")
+			idle_data = f.read()
+			f.close()
+		except:
+			idle_data = "DE %s Wenet High-Speed FSK Transmitter" % self.callsign
+		# Append a \x00 control code before the data
+		return "\x00" + idle_data
 
 
 	def tx_thread(self):
@@ -84,7 +98,8 @@ class PacketTX(object):
 				self.s.write(packet)
 			else:
 				if not self.debug:
-					self.s.write(self.idle_sequence)
+					#self.s.write(self.idle_sequence)
+					self.s.write(self.frame_packet(self.generate_idle_message()))
 				else:
 					sleep(0.05)
 		
@@ -99,7 +114,7 @@ class PacketTX(object):
 			sleep(0.01)
 
 	def tx_packet(self,packet,blocking = False):
-		self.txqueue.put(self.frame_packet(packet))
+		self.txqueue.put(self.frame_packet(packet, self.fec))
 
 		if blocking:
 			while not self.txqueue.empty():

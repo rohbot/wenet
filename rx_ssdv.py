@@ -24,6 +24,10 @@ def ssdv_packet_info(packet):
 	if len(packet) != 256:
 		return {'error': "ERROR: Invalid Packet Length"}
 
+	if (packet[1] != 0x66) and (packet[1] != 0x67):
+		print("Not a SSDV Packet! Contents: %s" % str(data))
+		return {'error': "ERROR: Not a SSDV Packet."}
+
 	# We got this far, may as well try and extract the packet info.
 	try:
 		packet_info = {
@@ -79,16 +83,16 @@ while True:
 			# Attempt to decode current image, and write out to a file.
 			temp_f.close()
 			# Run SSDV
-			returncode = os.system("ssdv -d rxtemp.bin %s_%d.jpg" % (current_packet_time,current_image))
+			returncode = os.system("ssdv -d rxtemp.bin ./rx_images/%s_%d.jpg" % (current_packet_time,current_image))
 			if returncode == 1:
 				print("ERROR: SSDV Decode failed!")
 			else:
 				print("SSDV Decoded OK!")
 				# Make a copy of the raw binary data.
-				os.system("mv rxtemp.bin %s_%d.bin" % (current_packet_time,current_image))
+				os.system("mv rxtemp.bin ./rx_images/%s_%d.bin" % (current_packet_time,current_image))
 
 				# Update live displays here.
-				trigger_gui_update("%s_%d.jpg" % (current_packet_time,current_image))
+				trigger_gui_update("./rx_images/%s_%d.jpg" % (current_packet_time,current_image))
 
 				# Trigger upload to habhub here.
 		else:

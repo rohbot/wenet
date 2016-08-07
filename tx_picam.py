@@ -1,16 +1,23 @@
 #!/usr/bin/env python
 #
 #	PiCam Transmitter Script
-#	Capture images from the PiCam, and transmit them,
+#	Capture images from the PiCam, and transmit them.
 #
 #	Mark Jessop <vk5qi@rfhead.net>
 #
 
 import PacketTX,  sys, os, datetime
+from picam_wrapper import *
 
-# Set to whatever resolution you want to transmit.
-tx_resolution = "1024x768"
-callsign = "VK5QI"
+try:
+	callsign = sys.argv[1]
+	if len(callsign)>6:
+		callsign = callsign[:6]
+except:
+	print("Usage: python tx_picam.py CALLSIGN")
+	sys.exit(1)
+
+print("Using callsign: %s" % callsign)
 
 
 debug_output = False # If True, packet bits are saved to debug.bin as one char per bit.
@@ -45,12 +52,13 @@ try:
 		# Capture image using PiCam
 		print("Capturing Image...")
 		capture_time = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
-		os.system("raspistill -t 100 -o ./tx_images/%s.jpg -vf -hf -w 1024 -h 768" % capture_time)
+		capture_multiple(filename="./tx_images/%s.jpg"%capture_time)
+		#os.system("raspistill -t 100 -o ./tx_images/%s.jpg -vf -hf -w 1024 -h 768" % capture_time)
 		# Resize using convert
 		print("Processing...")
 		#os.system("convert temp.jpg -resize %s\! temp.jpg" % tx_resolution)
 		# SSDV'ify the image.
-		os.system("ssdv -e -c %s -i %d ./tx_images/%s.jpg temp.ssdv" % (callsign,image_id,capture_time))
+		os.system("ssdv -e -n -c %s -i %d ./tx_images/%s.jpg temp.ssdv" % (callsign,image_id,capture_time))
 		# Transmit image
 		print("Transmitting...")
 		transmit_file("temp.ssdv",tx)
