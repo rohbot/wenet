@@ -41,8 +41,9 @@ To be able to run a full receive chain, from SDR through to images, you'll need:
 * `fsk_demod` and `drs232` from codec2-dev. You can get these using
  * `svn checkout http://svn.code.sf.net/p/freetel/code/codec2-dev/`
  * `cd codec2-dev && mkdir build-linux && cd build-linux && cmake ../`
+ * Go back to the main codec2-dev directory and:
  * Build `drs232` using `gcc src/drs232.c -o src/drs232 -Wall`
- * Then copy `src/fsk_demod`, `src/drs232` and `octace/fskdemodgui.py` to this directory. 
+ * Then copy `build-linux/src/fsk_demod`, `src/drs232` and `octave/fskdemodgui.py` to this directory. 
 
 * A few example gnuradio-companion flow-graphs are in the `grc` directory, for different SDRs. These receive samples from the SDR, demodulate a 500KHz section of spectrum as USB, resamples them to fsbaud*8 (which fsk_demod requires), then presents these samples via a TCP sink, which is acting as a TCP server. You will probably need to modify these to set the appropriate receive frequency.
 
@@ -56,10 +57,11 @@ To be able to run a full receive chain, from SDR through to images, you'll need:
 It's possible to use csdr (Get it from https://github.com/simonyiszk/csdr ) to perform the sideband demodulation and resampling functions:
 
 Example (RTLSDR):
-`rtl_sdr -s 1000000 -f 441000000 -g 35 - | csdr convert_u8_f | csdr bandpass_fir_fft_cc 0.1 0.4 0.05 | csdr fractional_decimator_ff 1.08331 | csdr realpart_cf | csdr convert_f_s16 | ./fsk_demod 2X 8 923096 115387 - - S 2> >(python fskdemodgui.py) | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
+`rtl_sdr -s 1000000 -f 441000000 -g 35 - | csdr convert_u8_f | csdr bandpass_fir_fft_cc 0.1 0.4 0.05 | csdr fractional_decimator_ff 1.08331 | csdr realpart_cf | csdr convert_f_s16 | ./fsk_demod 2X 8 923096 115387 - - S 2> >(python fskdemodgui.py) | ./drs232 - - | python rx_ssdv.py --partialupdate 16`
 
 This gets samples from the rtl_sdr at 1MHz, performs bandpass and fractional decimation options (to get the required Rb*8 sample rate for fsk_demod), then throw away the imaginary part and converts to 16-bit shorts before passing the data to fsk_demod.
 
 Example (AirSpy):
-`airspy_rx -f441.0 -r /dev/stdout -a 1 -h 21  | csdr convert_s16_f | csdr bandpass_fir_fft_cc 0.025 0.175 0.025 | csdr fractional_decimator_ff 2.708277 | csdr realpart_cf | csdr convert_f_s16 | ./fsk_demod 2X 8 923096 115387 - - S 2> >(python fskdemodgui.py) | ./drs232 - - | python rx_ssdv.py --partialupdate 8`
+`airspy_rx -f441.0 -r /dev/stdout -a 1 -h 21  | csdr convert_s16_f | csdr bandpass_fir_fft_cc 0.025 0.175 0.025 | csdr fractional_decimator_ff 2.708277 | csdr realpart_cf | csdr convert_f_s16 | ./fsk_demod 2X 8 923096 115387 - - S 2> >(python fskdemodgui.py) | ./drs232 - - | python rx_ssdv.py --partialupdate 16`
+
 
