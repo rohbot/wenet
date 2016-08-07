@@ -24,8 +24,11 @@ def ssdv_packet_info(packet):
 	if len(packet) != 256:
 		return {'error': "ERROR: Invalid Packet Length"}
 
-	if (packet[1] != 0x66) and (packet[1] != 0x67):
-		print("Not a SSDV Packet! Contents: %s" % str(data))
+	if packet[0] != 0x55: # A first byte of 0x55 indicates a SSDV packet.
+		if packet[0] == 0x00: # Interim arbitrary text message packet.
+			print("%s \tText Message: %s" % (datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S.%fZ"),str(data)))
+		else:
+			print("%s \tUnknown packet type." % (datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S.%fZ")))
 		return {'error': "ERROR: Not a SSDV Packet."}
 
 	# We got this far, may as well try and extract the packet info.
@@ -46,7 +49,7 @@ def ssdv_packet_info(packet):
 
 
 def ssdv_packet_string(packet_info):
-	return "SSDV: %s, Img:%d, Pkt:%d, %dx%d" % (packet_info['packet_type'],packet_info['image_id'],packet_info['packet_id'],packet_info['width'],packet_info['height'])
+	return "%s \tSSDV: %s, Img:%d, Pkt:%d, %dx%d" % (datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S.%fZ"), packet_info['packet_type'],packet_info['image_id'],packet_info['packet_id'],packet_info['width'],packet_info['height'])
 
 
 def trigger_gui_update(filename):
