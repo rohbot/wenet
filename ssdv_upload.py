@@ -1,10 +1,12 @@
 #!/usr/bin/env python2.7
 #
-#	SSDV Upload Library
+#	SSDV Upload Script.
+#
+#	Watches the rx_images directory for new images, and uploads the latest image it sees.
 #
 #
 
-import base64, requests, datetime, os
+import base64, requests, datetime, os, glob, time
 
 ssdv_url = "http://ssdv.habhub.org/api/v0/packets"
 
@@ -35,7 +37,10 @@ def ssdv_upload_multiple(packet_array,callsign="N0CALL"):
 		"type": "packets",
 		"packets": encoded_array
 	}
-	r = requests.post(ssdv_url,json=packet_dict)
+	try:
+		r = requests.post(ssdv_url,json=packet_dict)
+	except Exception as e:
+		print(e.strerror)
 	return r
 
 
@@ -48,6 +53,7 @@ def ssdv_upload_file(filename,callsign="N0CALL", blocksize=16):
 
 	packet_count = file_size/256
 	print("Uploading %d packets." % packet_count)
+	start_time = datetime.datetime.now()
 
 	f = open(filename,"rb")
 
@@ -68,11 +74,46 @@ def ssdv_upload_file(filename,callsign="N0CALL", blocksize=16):
 		print("%d packets remaining." % packet_count)
 
 	f.close()
+	stop_time = datetime.datetime.now()
+	upload_time = (stop_time-start_time).total_seconds()
+	print("Upload Completed in %.2f Seconds." % upload_time)
+
+def ssdv_dir_watcher(glob_string="./rx_images/*.bin", check_time = 0.5, callsign="N0CALL"):
+	# Check what's there now..
+	rx_images = glob.glob(glob_string)
+	print("Starting directory watch...")
+
+	while True:
+		time.sleep(check_time)
+
+		# Check directory again.
+		rx_images_temp = glob.glob(glob_string)
+		if len(rx_images_temp) == 0:
+			continue
+		# Sort list. Image filenames are timestamps, so the last element in the array will be the latest image.
+		rx_images_temp.sort()
+		# Is there an new image?
+		if rx_images_temp[-1] not in rx_images:
+			# New image! Wait a little bit in case we're still writing to that file, then upload.
+			time.sleep(0.5)
+			filename = rx_images_temp[-1]
+			print("Found new image! Uploading: %s " % filename)
+			ssdv_upload_file(filename,callsign=callsign,blocksize=256)
+
+		rx_images = rx_images_temp
+
+
 
 if __name__ == '__main__':
 	import sys
-	filename = sys.argv[1]
-	callsign = sys.argv[2]
-	print("Uploading: %s with Callsign: %s" % (filename,callsign))
+	try:
+		callsign = sys.argv[1]
+		if len(callsign)>6:
+			callsign = callsign[:6]
+	except:
+		print("Usage: python ssdv_upload.py CALLSIGN &")
+		sys.exit(1)
 
-	ssdv_upload_file(filename,callsign=callsign,blocksize=256)
+	print("Using callsign: %s" % callsign)
+	
+	ssdv_dir_watcher(callsign=callsign)

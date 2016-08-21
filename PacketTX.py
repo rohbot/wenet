@@ -33,6 +33,11 @@ class BinaryDebug(object):
 	def close(self):
 		self.f.close()
 
+def write_debug_message(message, debug_file = "tx_idle_message.txt"):
+	f = open(debug_file,'w')
+	f.write(message)
+	f.close()
+	print("DEBUG MSG: %s" % message)
 
 class PacketTX(object):
 	txqueue = Queue.Queue(4096) # Up to 1MB of 256 byte packets
@@ -83,7 +88,7 @@ class PacketTX(object):
 		# Try and read in a message from a file.
 		try:
 			f = open("tx_idle_message.txt")
-			idle_data = f.read()
+			idle_data = "DE %s: \t%s" % (self.callsign,f.read())
 			f.close()
 		except:
 			idle_data = "DE %s Wenet High-Speed FSK Transmitter" % self.callsign

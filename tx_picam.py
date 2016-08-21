@@ -7,7 +7,8 @@
 #
 
 import PacketTX,  sys, os, datetime
-from picam_wrapper import *
+from PacketTX import write_debug_message
+from wenet_util import *
 
 try:
 	callsign = sys.argv[1]
@@ -26,7 +27,7 @@ def transmit_file(filename, tx_object):
 	file_size = os.path.getsize(filename)
 
 	if file_size % 256 > 0:
-		print("File size not a multiple of 256 bytes!")
+		write_debug_message("File size not a multiple of 256 bytes!")
 		return
 
 	print("Transmitting %d Packets." % (file_size/256))
@@ -42,7 +43,7 @@ def transmit_file(filename, tx_object):
 	tx_object.wait()
 
 
-tx = PacketTX.PacketTX(debug=debug_output)
+tx = PacketTX.PacketTX(debug=debug_output, callsign=callsign)
 tx.start_tx()
 
 image_id = 0
@@ -55,7 +56,7 @@ try:
 		capture_multiple(filename="./tx_images/%s.jpg"%capture_time)
 		#os.system("raspistill -t 100 -o ./tx_images/%s.jpg -vf -hf -w 1024 -h 768" % capture_time)
 		# Resize using convert
-		print("Processing...")
+		write_debug_message("Converting Image to SSDV...")
 		#os.system("convert temp.jpg -resize %s\! temp.jpg" % tx_resolution)
 		# SSDV'ify the image.
 		os.system("ssdv -e -n -c %s -i %d ./tx_images/%s.jpg temp.ssdv" % (callsign,image_id,capture_time))
