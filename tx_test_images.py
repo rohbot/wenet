@@ -9,7 +9,7 @@
 import PacketTX,  sys, os
 
 # Set to whatever resolution you want to test.
-file_path = "./test_images/%d_320x240.ssdv" # _raw, _800x608, _640x480, _320x240
+file_path = "./test_images/%d_raw.ssdv" # _raw, _800x608, _640x480, _320x240
 image_numbers = xrange(1,14)
 
 debug_output = True # If True, packet bits are saved to debug.bin as one char per bit.
@@ -34,15 +34,15 @@ def transmit_file(filename, tx_object):
 	tx_object.wait()
 
 
-tx = PacketTX.PacketTX(debug=debug_output)
+tx = PacketTX.PacketTX(debug=debug_output,fec=False)
 tx.start_tx()
 print("TX Started. Press Ctrl-C to stop.")
 try:
-	while True:
-		for img in image_numbers:
-			filename = file_path % img
-			print("\nTXing: %s" % filename)
-			transmit_file(filename,tx)
+	for img in image_numbers:
+		filename = file_path % img
+		print("\nTXing: %s" % filename)
+		transmit_file(filename,tx)
+	tx.close()
 except KeyboardInterrupt:
 	print("Closing...")
 	tx.close()

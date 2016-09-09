@@ -5,6 +5,13 @@
 # Frames packets (preamble, unique word, checksum)
 # and transmits them out of a serial port.
 #
+#	RPI UART Calibration
+#	9600  -> 9600.1536
+#	19200 -> 19200.307
+#	38400 -> 38339.148
+#	57600 -> 57693.417
+#  115200 -> 115386.834
+#
 # Mark Jessop <vk5qi@rfhead.net>
 #
 
@@ -34,9 +41,9 @@ class BinaryDebug(object):
 		self.f.close()
 
 def write_debug_message(message, debug_file = "tx_idle_message.txt"):
-	f = open(debug_file,'w')
-	f.write(message)
-	f.close()
+	#f = open(debug_file,'w')
+	#f.write(message)
+	#f.close()
 	print("DEBUG MSG: %s" % message)
 
 class PacketTX(object):
@@ -59,8 +66,9 @@ class PacketTX(object):
 		self.payload_length = payload_length
 
 		self.crc16 = crcmod.predefined.mkCrcFun('crc-ccitt-false')
-		self.fec = fec
 		self.callsign = callsign
+		self.idle_message = "DE %s" % callsign
+		self.fec = fec
 
 	def start_tx(self):
 		self.transmit_active = True
@@ -82,18 +90,17 @@ class PacketTX(object):
 		else:
 			return self.preamble + self.unique_word + packet + crc 
 
+
+	def set_idle_message(self, message):
+		temp_msg = "\x00" + "DE %s: \t%s" % (self.callsign, message)
+		self.idle_message = self.frame_packet(temp_msg)
+
+
 	# Either generate an idle message, or read one in from a file (tx_idle_message.txt) if it exists.
 	# This might be a useful way of getting error messages down from the payload.
 	def generate_idle_message(self):
-		# Try and read in a message from a file.
-		try:
-			f = open("tx_idle_message.txt")
-			idle_data = "DE %s: \t%s" % (self.callsign,f.read())
-			f.close()
-		except:
-			idle_data = "DE %s Wenet High-Speed FSK Transmitter" % self.callsign
 		# Append a \x00 control code before the data
-		return "\x00" + idle_data
+		return "\x00" + "DE %s: \t%s" % (self.callsign,self.idle_message)
 
 
 	def tx_thread(self):
@@ -104,7 +111,7 @@ class PacketTX(object):
 			else:
 				if not self.debug:
 					#self.s.write(self.idle_sequence)
-					self.s.write(self.frame_packet(self.generate_idle_message()))
+					self.s.write(self.idle_message)
 				else:
 					sleep(0.05)
 		

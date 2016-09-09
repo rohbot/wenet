@@ -2,11 +2,12 @@
 #
 #	PiCam Transmitter Script
 #	Capture images from the PiCam, and transmit them.
+#	Multiple baud rate test version.
 #
 #	Mark Jessop <vk5qi@rfhead.net>
 #
 
-import PacketTX,  sys, os, datetime
+import PacketTX,  sys, os, datetime, time
 from PacketTX import write_debug_message
 from wenet_util import *
 
@@ -20,8 +21,12 @@ except:
 
 print("Using callsign: %s" % callsign)
 
+
 fec = False
 debug_output = False # If True, packet bits are saved to debug.bin as one char per bit.
+
+baud_rate_1 = 115200
+baud_rate_2 = 19200
 
 def transmit_file(filename, tx_object):
 	file_size = os.path.getsize(filename)
@@ -42,8 +47,7 @@ def transmit_file(filename, tx_object):
 	print("Waiting for tx queue to empty...")
 	tx_object.wait()
 
-
-tx = PacketTX.PacketTX(debug=debug_output, callsign=callsign, fec=fec)
+tx = PacketTX.PacketTX(debug=debug_output, callsign=callsign,serial_baud=baud_rate_1)
 tx.start_tx()
 
 image_id = 0
@@ -62,7 +66,22 @@ try:
 		os.system("ssdv -e -n -c %s -i %d ./tx_images/%s.jpg temp.ssdv" % (callsign,image_id,capture_time))
 		# Transmit image
 		print("Transmitting...")
+
+		# Transmit first in 115200 baud.
 		transmit_file("temp.ssdv",tx)
+		tx.close()
+		time.sleep(2)
+
+		# Transmit again in 19200 baud
+		tx = PacketTX.PacketTX(debug=debug_output, callsign=callsign, serial_baud=baud_rate_2, fec = fec)
+		tx.start_tx()
+		transmit_file("temp.ssdv",tx)
+		tx.close()
+		time.sleep(2)
+
+		# Re-open TX in 115200 baud.
+		tx = PacketTX.PacketTX(debug=debug_output, callsign=callsign, serial_baud=baud_rate_1, fec = fec)
+		tx.start_tx()
 
 		# Increment Counter
 		image_id = (image_id+1)%256
