@@ -18,18 +18,18 @@ temp_file_prefix = "./temp_pic"
 def capture_single(filename="temp.jpg"):
 	os.system(picam_str % filename)
 
-def capture_multiple(filename="output.jpg", n=5, temp_prefix=temp_file_prefix):
+def capture_multiple(filename="output.jpg", n=5, temp_prefix=temp_file_prefix, debug_ptr = None):
 	# Remove any existing temporary images
 	os.system("rm %s*.jpg"%temp_prefix)
 
 	# Capture n images
 	for pic_num in range(n):
-		write_debug_message("Capturing Image %d of %d..." % (pic_num, n))
+		debug_ptr("Capturing Image %d of %d..." % (pic_num, n))
 		capture_single("%s_%d.jpg"%(temp_prefix,pic_num))
 
 	# Super high-tech image quality recognition filter
 	# (pick the largest image... thanks daveake!)
-	write_debug_message("Choosing Best Image...")
+	debug_ptr("Choosing Best Image...")
 	pic_list = glob.glob("%s*.jpg"%temp_prefix)
 	pic_sizes = []
 	for pic in pic_list:

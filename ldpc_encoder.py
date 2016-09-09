@@ -21,7 +21,7 @@ try:
     _ldpc_enc.encode.restype = None
     _ldpc_enc.encode.argtypes = (ndpointer(ctypes.c_ubyte, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_ubyte, flags="C_CONTIGUOUS"))
 except OSError as e:
-    raise OSError("Could not find ldpc_enc.so! Have you compiled ldpc_enc.c?")
+    print("WARNING: Could not find ldpc_enc.so! Have you compiled ldpc_enc.c? \n gcc -fPIC -shared -o ldpc_enc.so ldpc_enc.c")
 
 #
 #   LDPC Encoder.
