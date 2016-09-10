@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-#   LDPC Encoder Functions.
+#   LDPC Encoder and interleaver Functions.
 #   Uses ctypes to call the encode function from ldpc_enc.c
 #
 #   ldpc_enc.c needs to be compiled to a .so before this will work, with:
@@ -20,6 +20,13 @@ try:
     _ldpc_enc = ctypes.CDLL("./ldpc_enc.so")
     _ldpc_enc.encode.restype = None
     _ldpc_enc.encode.argtypes = (ndpointer(ctypes.c_ubyte, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_ubyte, flags="C_CONTIGUOUS"))
+
+    _ldpc_enc.init_interleaver.restype = None
+    _ldpc_enc.init_interleaver.argtypes = (ctypes.c_int,)
+
+    _ldpc_enc.interleave_symbols.restype = None
+    _ldpc_enc.interleave_symbols.argtypes = (ndpointer(ctypes.c_ubyte, flags="C_CONTIGUOUS"),)
+
 except OSError as e:
     print("WARNING: Could not find ldpc_enc.so! Have you compiled ldpc_enc.c? \n gcc -fPIC -shared -o ldpc_enc.so ldpc_enc.c")
 
@@ -39,6 +46,64 @@ def ldpc_encode_string(payload, Nibits = 2064, Npbits = 516):
     _ldpc_enc.encode(ibits, pbits)
 
     return np.packbits(np.array(list(pbits)).astype(np.uint8)).tostring()
+
+
+#
+#   Interleaver functions
+#
+
+# These variables need to be synchronised with those in ldpc_enc.c, until i figure out a better way
+# of passing this info around.
+
+INTERLEAVER_SIZE = 256
+INTERLEAVER_SIZE_BYTES = INTERLEAVER_SIZE/8
+INTERLEAVER_DEPTH = 10
+
+interleaver_byte_buffer = ""
+
+def interleaver_init(forward=True):
+    if forward:
+        _ldpc_enc.init_interleaver(0)
+    else:
+        _ldpc_enc.init_interleaver(1)
+
+# Input symbols into the interleaver, and get symbols to be transmitted
+# This function will only accept a symbol array of length INTERLEAVER_SIZE
+def interleave_symbols(symbols):
+    if len(symbols)%INTERLEAVER_SIZE != 0:
+        raise IOError("Input not a multiple of the interleaver width!")
+
+    data = np.array(symbols).astype(np.uint8)
+
+    _ldpc_enc.interleave_symbols(data)
+
+    return data
+
+# Interleave bytes,  passed in as a string
+def interleave_bytes(data):
+    # Clip to interleaver width
+    # Need to do something a bit nicer here.
+    if (len(data)%INTERLEAVER_SIZE_BYTES) > 0:
+        clip_length = INTERLEAVER_SIZE_BYTES*int(len(data)/INTERLEAVER_SIZE_BYTES)
+        data = data[:clip_length]
+        print("WARNING: Clipped data")
+
+    output = ""
+
+    for x in range(int(len(data)/INTERLEAVER_SIZE_BYTES)):
+        # Get current chunk of data and convert to bits.
+        chunk = data[x*INTERLEAVER_SIZE_BYTES:x*INTERLEAVER_SIZE_BYTES+INTERLEAVER_SIZE_BYTES]
+        chunk_bits = np.unpackbits(np.fromstring(chunk,dtype=np.uint8))
+        new_chunk = interleave_symbols(chunk_bits)
+        print(new_chunk)
+        new_chunk = np.packbits(new_chunk).tostring()
+        output += new_chunk
+
+    return output
+
+
+def interleave_test():
+    pass
 
 
 # Some testing functions, to time encoding performance.
