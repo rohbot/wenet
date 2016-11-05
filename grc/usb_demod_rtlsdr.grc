@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<?grc format='1' created='3.7.10'?>
+<?grc format='1' created='3.7.9'?>
 <flow_graph>
   <timestamp>Tue Feb 23 21:53:55 2016</timestamp>
   <block>
@@ -101,7 +101,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(168, 371)</value>
+      <value>(16, 357)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -152,7 +152,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>440.960e6</value>
+      <value>440.980e6</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -160,7 +160,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(16, 515)</value>
+      <value>(16, 469)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -219,7 +219,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(200, 251)</value>
+      <value>(16, 245)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -278,7 +278,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(11, 270)</value>
+      <value>(16, 133)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -329,7 +329,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(10, 170)</value>
+      <value>(16, 71)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -443,11 +443,11 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>1</value>
+      <value>True</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1080, 603)</value>
+      <value>(1088, 576)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -494,7 +494,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(696, 464)</value>
+      <value>(696, 456)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -511,57 +511,6 @@
     <param>
       <key>minoutbuf</key>
       <value>0</value>
-    </param>
-    <param>
-      <key>vlen</key>
-      <value>1</value>
-    </param>
-  </block>
-  <block>
-    <key>blocks_file_sink</key>
-    <param>
-      <key>append</key>
-      <value>False</value>
-    </param>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>file</key>
-      <value>/tmp/fsktest</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(1072, 515)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>blocks_file_sink_0</value>
-    </param>
-    <param>
-      <key>type</key>
-      <value>short</value>
-    </param>
-    <param>
-      <key>unbuffered</key>
-      <value>False</value>
     </param>
     <param>
       <key>vlen</key>
@@ -608,7 +557,7 @@
     </param>
     <param>
       <key>scale</key>
-      <value>32768</value>
+      <value>25000</value>
     </param>
     <param>
       <key>vlen</key>
@@ -631,11 +580,11 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>False</value>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(880, 731)</value>
+      <value>(944, 725)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -1966,7 +1915,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(224, 75)</value>
+      <value>(232, 113)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -2358,11 +2307,11 @@
     </param>
     <param>
       <key>_enabled</key>
-      <value>False</value>
+      <value>0</value>
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1048, 699)</value>
+      <value>(1112, 706)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -2446,12 +2395,6 @@
   <connection>
     <source_block_id>blocks_float_to_short_0</source_block_id>
     <sink_block_id>blks2_tcp_sink_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>blocks_float_to_short_0</source_block_id>
-    <sink_block_id>blocks_file_sink_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
