@@ -20,7 +20,7 @@ except:
 
 print("Using callsign: %s" % callsign)
 
-fec = False
+fec = True
 debug_output = False # If True, packet bits are saved to debug.bin as one char per bit.
 
 def transmit_file(filename, tx_object):

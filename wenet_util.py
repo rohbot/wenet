@@ -11,7 +11,7 @@ from PacketTX import write_debug_message
 #
 
 # Adjust this line to suit your needs (resolution, image flip, etc)
-picam_str = "raspistill -t 3000 -ex auto -mm matrix -o %s -vf -hf -w 2592 -h 1936"
+picam_str = "raspistill -t 3000 -ex auto -mm matrix -o %s -vf -hf -w 1488 -h 1120"
 temp_file_prefix = "./temp_pic"
 
 
