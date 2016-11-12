@@ -51,7 +51,7 @@ class PacketTX(object):
 	transmit_active = False
 	debug = False
 
-	unique_word = "\xab\xcd"
+	unique_word = "\xab\xcd\xef\x01"
 	preamble = "\x55"*16
 	idle_sequence = "\x55"*256
 

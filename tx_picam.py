@@ -20,6 +20,8 @@ except:
 
 print("Using callsign: %s" % callsign)
 
+
+tx_baud_rate = 115200 # Actually 115387, due to divider error.
 fec = True
 debug_output = False # If True, packet bits are saved to debug.bin as one char per bit.
 
@@ -43,7 +45,7 @@ def transmit_file(filename, tx_object):
 	tx_object.wait()
 
 
-tx = PacketTX.PacketTX(debug=debug_output, callsign=callsign, fec=fec)
+tx = PacketTX.PacketTX(debug=debug_output, callsign=callsign, fec=fec, serial_baud = tx_baud_rate)
 tx.start_tx()
 
 image_id = 0
