@@ -7,10 +7,14 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 * v0.1 - First test flight on Horus 37, no FEC. Read more about that here: http://rfhead.net/?p=637
 * v0.2 - Second test flight, with LDPC FEC enabled. - TBD.
 
+## Ubuntu 16.04 RX
+* There is now a guide on how to set up a RX station using Ubuntu within the INSTALL_ubuntu file
+
 ## Dependencies
 * Python (2.7, though 3 might work with some small mods)
 * SSDV (https://github.com/fsphil/ssdv). The `ssdv` binary needs to be available on the PATH.
 * crcmod (`pip install crcmod`)
+* python requests (install using pip)
 * numpy (for debug output tests): `apt-get install python-numpy`
 * PyQtGraph & PyQt4 (for FSK Modem Stats and SSDV GUI: `pip install pyqtgraph`)
 
@@ -42,6 +46,8 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 * Apparently the newer Raspberry Pi's (or possibly just a newer version of Raspbian) use the alternate UART hardware by default, which has a smaller transmit buffer. This may result in gaps between bytes, which will likely throw the rx timing estimation off.
 
 ### RX Side
+* NOTE: On Ubuntu 16.04 or newer, follow the guide within INSTALL_ubuntu
+
 To be able to run a full receive chain, from SDR through to images, you'll need:
 * GnuRadio + libraries for whatever SDR you plan on using.
 * `fsk_demod`, `drs232_ldpc`, 'tsrc' from codec2-dev. You can get these using
@@ -62,12 +68,12 @@ To be able to run a full receive chain, from SDR through to images, you'll need:
   * `nc localhost 9898 | ./fsk_demod 2XS 8 923096 115387 - - S 2> >(python fskdemodgui.py) | ./drs232_ldpc - - -vv| python rx_ssdv.py --partialupdate 16`
 
 ### RX Without GNURadio
-It's possible to use csdr (Get it from https://github.com/simonyiszk/csdr ) to perform the sideband demodulation. Unfortunately the csdr fractional resampler actually degrades the signal somewhat, so we are currently using a resample from the codec2_dev repository (tsrc). 
+It's possible to use csdr (Get it from https://github.com/simonyiszk/csdr ) to perform the sideband demodulation. 
 
 Example (RTLSDR):
-`rtl_sdr -s 1000000 -f 440980000 -g 35 - | csdr convert_u8_f | csdr bandpass_fir_fft_cc 0.05 0.45 0.05 | csdr realpart_cf | csdr gain_ff 0.5 | csdr convert_f_s16 | ./tsrc - - 0.9230968 | ./fsk_demod 2XS 8 923096 115387 - - S 2> >(python fskdemodgui.py) | ./drs232_ldpc - - -vv| python rx_ssdv.py --partialupdate 16`
+`rtl_sdr -s 923096 -f 440980000 -g 35 - | csdr convert_u8_f | csdr bandpass_fir_fft_cc 0.05 0.45 0.05 | csdr realpart_cf | csdr gain_ff 0.5 | csdr convert_f_s16 | ./fsk_demod 2XS 8 923096 115387 - - S 2> >(python fskdemodgui.py) | ./drs232_ldpc - - -vv| python rx_ssdv.py --partialupdate 16`
 
-This mess of a command line (bash piping, yay!) receives samples from the rtlsdr, filters out the upper 'sideband' of the received bandwidth, then throws away the imaginary part and convert to 16-bit shorts. The signal is then resampled using a utility from the codec2-dev repository, before being fed into fsk_demod (the FSK modem). Debug output (on stderr) from the modem is piped into a python GUI), while the received soft-decision 'bits' are piped into drs232_ldpc, which does de-framing and LDPC error correction. Packets which pass checksum are then passed onto the rx_ssdv.py python utility for assembly into images.
+This mess of a command line (bash piping, yay!) receives samples from the rtlsdr, filters out the upper 'sideband' of the received bandwidth, then throws away the imaginary part and convert to 16-bit shorts. The signal is then fed into fsk_demod (the FSK modem). Debug output (on stderr) from the modem is piped into a python GUI), while the received soft-decision 'bits' are piped into drs232_ldpc, which does de-framing and LDPC error correction. Packets which pass checksum are then passed onto the rx_ssdv.py python utility for assembly into images.
 
 On my flights the centre frequency of the transmitter is around 441.2 MHz, so I tune the RTLSDR to just below 441 MHz to sit the signal roughly in the middle of the passband.
 
@@ -75,5 +81,5 @@ It should be quite possible to use other SDRs (i.e. the AirSpy) with appropriate
 
 ## RX Tips.
 * It is highly recommended to use a preamplifier in front of your RTLSDR to lower the overall noise figure of the system. With a NooElec RTLSDR (R820T2 Tuner) and a [HabAmp](https://store.uputronics.com/index.php?route=product/product&product_id=53), we were able to acheive a Minimum-Detectable-Signal (MDS - which we defined as the point where we get no packet errors) of around -112 dBm.
-* If needed, the bitrate can be slowed down by editing the defaults in tx_picam.py. You will then have to determine the appropriate parameters for fsk_demod and the preceding filtering/resampling chain.
+* If needed, the transmit bitrate can be slowed down by editing the defaults in tx_picam.py. You will then have to determine the appropriate parameters for fsk_demod and the preceding filtering/resampling chain.
 
