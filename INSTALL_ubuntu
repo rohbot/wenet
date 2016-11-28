@@ -116,6 +116,15 @@ Three windows should appear:
 You can kill all the RX processed by running the 'Kill RX' shortcut on the desktop.
 
 
+If you have a recorded sample, you can replay it by doing:
+
+Opening the SSDV Viewer GUI by running:
+> python rx_gui.py &
+
+Then 'playback' the sample file using:
+
+> python replay.py 1000000 <filenamehere> | csdr convert_u8_f | csdr bandpass_fir_fft_cc 0.05 0.45 0.05 | csdr realpart_cf | csdr gain_ff 0.5 | csdr convert_f_s16 | ./fsk_demod 2XS 8 923096 115387 - - S 2> >(python fskdemodgui.py --wide) | ./drs232_ldpc - -  -vv| python rx_ssdv.py --partialupdate 16
+
 
 
 
