@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Exec=killall -9 python
+Name=Kill RX
+GenericName=Kill RX
+Comment=Kill RX
+Encoding=UTF-8
+Terminal=True
+Type=Application
+Categories=Application
+

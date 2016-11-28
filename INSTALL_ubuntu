@@ -1,0 +1,123 @@
+FOREWORD
+--------
+The following assumes you are operating from a stock Ubuntu 16.04 installation, and that everything
+is being downloaded into your home directory.
+
+Command that you need to run in a terminal are prefixed with '>' like so:
+> echo "Hello World"
+
+
+REQUIRED PACKAGES
+-----------------
+From a stock Ubuntu 16.04 installation, the following packages were required:
+
+git subversion build-essential python-numpy python-pyqtgraph python-pip libfftw3-dev libspeexdsp-dev cmake libsamplerate0-dev libusb-1.0-0-dev
+
+These can be installed using:
+> sudo apt-get install <the list above>
+
+Using pip, the following additional python packages were installed by running:
+
+> sudo pip install crcmod requests
+
+GETTING THIS REPOSITORY
+-----------------------
+If you haven't already downloaded this repository, do so using:
+
+> git clone https://github.com/projecthorus/wenet.git
+
+
+RTL-SDR FROM SOURCE
+-------------------
+As we might want to use the bias-tee option in the newer v3 RTLSDR's, we will need to compile the rtl-sdr
+software from source:
+
+> git clone https://github.com/rtlsdrblog/rtl-sdr
+> cd rtl-sdr
+> mkdir build
+> cd build
+> cmake -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON ../
+> sudo make install
+
+Confirm you can communicate with your rtl-sdr by running:
+> rtl_test
+
+OTHER DEPENDENCIES
+------------------
+The following git repositories need to be cloned, built and installed:
+
+https://github.com/fsphil/ssdv.git
+https://github.com/simonyiszk/csdr.git
+
+In general terms, you would use the following to build and install:
+> git clone <url above>
+> cd ssdv   (or csdr)
+> make
+> sudo make install
+> cd  ~/
+
+If not already done above, you will also need to clone the wenet repository:
+
+> git clone https://github.com/projecthorus/wenet.git
+
+We need some binaries from the codec2-dev repository:
+
+> svn checkout http://svn.code.sf.net/p/freetel/code/codec2-dev/
+> cd codec2-dev
+> mkdir build
+> cd build
+> cmake ../
+> make
+> cp src/fsk_demod ~/wenet/
+
+Some binaries aren't built automatically with cmake...
+You can ignore warnings when compiling these.
+> cd ~/codec2-dev/src
+> gcc drs232_ldpc.c mpdecode_core.c -o drs232_ldpc -Wall -lm
+> cp drs232_ldpc ~/wenet/
+
+We also need to copy out the FSK Demod GUI Utility from this repository
+> cp ~/codec2-dev/octave/fskdemodgui.py ~/wenet/
+
+
+CALLSIGN AND SHORTCUTS SETUP
+----------------------------
+cd into the wenet directory:
+> cd ~/wenet/
+
+Edit start_rx.sh using your favourite text editor, and change the line:
+
+   MYCALL=CHANGEME
+
+so that your callsign is in place of CHANGEME.
+If you are using a RTLSDR V3 and need the bias-tee enabled, uncomment the marked line by removing the
+'#' at the start of the line.
+
+Next, copy the two .desktop files to your desktop by running:
+
+> cp *.desktop ~/Desktop/
+
+If your username is somethign other than 'wenet', you will need to edit the Start_SSDV.desktop file, 
+so that the 'Exec='' line contains the correct path to start_rx.sh
+
+If the shortcuts don't show up with a 'diamond gears' icon on the desktop, right click on them, and 
+in the permissions tab, click 'Allow executing file as program'
+
+
+TESTS
+-----
+You should now be able to start up the receiving software stack by clicking on the 'Start Wenet RX'.
+
+Three windows should appear:
+- A terminal window with lots of scrolling text (modem status messages)
+- The FSK Demodulator Modem Statistics window, and
+- The SSDV Viewer GUI
+
+You can kill all the RX processed by running the 'Kill RX' shortcut on the desktop.
+
+
+
+
+
+
+

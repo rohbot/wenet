@@ -87,6 +87,7 @@ if __name__ == "__main__":
 
     main = MyWindow()
     main.resize(800,600)
+    main.setWindowTitle("SSDV Viewer")
 
     udp_callback = main.rxqueue.put_nowait
     t = Thread(target=udp_rx)

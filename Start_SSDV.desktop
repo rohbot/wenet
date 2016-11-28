@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Exec=/home/wenet/wenet/start_rx.sh
+Name=Start Wenet RX
+GenericName=Start Wenet RX
+Comment=Start Wenet RX
+Encoding=UTF-8
+Terminal=true
+Type=Application
+Categories=Application
+
