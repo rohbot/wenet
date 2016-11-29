@@ -1,6 +1,6 @@
 FOREWORD
 --------
-The following assumes you are operating from a stock Ubuntu 16.04 installation, and that everything
+The following assumes you are operating from a stock Ubuntu 16.04.x installation, and that everything
 is being downloaded into your home directory.
 
 Command that you need to run in a terminal are prefixed with '>' like so:
@@ -9,9 +9,9 @@ Command that you need to run in a terminal are prefixed with '>' like so:
 
 REQUIRED PACKAGES
 -----------------
-From a stock Ubuntu 16.04 installation, the following packages were required:
+From a stock Ubuntu 16.04.x installation, the following packages were required:
 
-git subversion build-essential python-numpy python-pyqtgraph python-pip libfftw3-dev libspeexdsp-dev cmake libsamplerate0-dev libusb-1.0-0-dev
+git subversion cmake build-essential python-numpy python-pyqtgraph python-pip libfftw3-dev libspeexdsp-dev libsamplerate0-dev libusb-1.0-0-dev
 
 These can be installed using:
 > sudo apt-get install <the list above>
@@ -38,6 +38,7 @@ software from source:
 > cd build
 > cmake -DINSTALL_UDEV_RULES=ON -DDETACH_KERNEL_DRIVER=ON ../
 > sudo make install
+> sudo ldconfig
 
 Confirm you can communicate with your rtl-sdr by running:
 > rtl_test
