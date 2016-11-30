@@ -63,19 +63,14 @@ If not already done above, you will also need to clone the wenet repository:
 
 We need some binaries from the codec2-dev repository:
 
-> svn checkout http://svn.code.sf.net/p/freetel/code/codec2-dev/
+> svn checkout -r 2908 http://svn.code.sf.net/p/freetel/code/codec2-dev/
 > cd codec2-dev
 > mkdir build
 > cd build
 > cmake ../
 > make
 > cp src/fsk_demod ~/wenet/
-
-Some binaries aren't built automatically with cmake...
-You can ignore warnings when compiling these.
-> cd ~/codec2-dev/src
-> gcc drs232_ldpc.c mpdecode_core.c -o drs232_ldpc -Wall -lm
-> cp drs232_ldpc ~/wenet/
+> cp src/drs232_ldpc ~/wenet/
 
 We also need to copy out the FSK Demod GUI Utility from this repository
 > cp ~/codec2-dev/octave/fskdemodgui.py ~/wenet/
