@@ -93,7 +93,7 @@ class PacketTX(object):
 
 	def set_idle_message(self, message):
 		temp_msg = "\x00" + "DE %s: \t%s" % (self.callsign, message)
-		self.idle_message = self.frame_packet(temp_msg)
+		self.idle_message = self.frame_packet(temp_msg,fec=self.fec)
 
 
 	# Either generate an idle message, or read one in from a file (tx_idle_message.txt) if it exists.
