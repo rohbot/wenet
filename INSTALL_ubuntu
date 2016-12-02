@@ -63,7 +63,7 @@ If not already done above, you will also need to clone the wenet repository:
 
 We need some binaries from the codec2-dev repository:
 
-> svn checkout -r 2908 http://svn.code.sf.net/p/freetel/code/codec2-dev/
+> svn checkout -r 2914 http://svn.code.sf.net/p/freetel/code/codec2-dev/
 > cd codec2-dev
 > mkdir build
 > cd build
