@@ -3,13 +3,16 @@
 #	Receiver Test Script.
 #	Feeds a list of test images into the receiver code, via stdout/stdin.
 #
+#	Run using: 
+#		python rx_tester.py | python rx_ssdv.py 
+#
 #	Mark Jessop <vk5qi@rfhead.net>
 #
 
 import time, sys, os
 
 # Set to whatever resolution you want to test.
-file_path = "./test_images/%d_raw.ssdv" # _raw, _800x608, _640x480, _320x240
+file_path = "../test_images/%d_raw.ssdv" # _raw, _800x608, _640x480, _320x240
 image_numbers = xrange(1,14)
 
 print_as_hex = False

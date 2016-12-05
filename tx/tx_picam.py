@@ -61,7 +61,7 @@ try:
 		tx.set_idle_message("Converting Image to SSDV...")
 		#os.system("convert temp.jpg -resize %s\! temp.jpg" % tx_resolution)
 		# SSDV'ify the image.
-		os.system("ssdv -e -n -c %s -i %d ./tx_images/%s.jpg temp.ssdv" % (callsign,image_id,capture_time))
+		os.system("ssdv -e -n -q 6 -c %s -i %d ./tx_images/%s.jpg temp.ssdv" % (callsign,image_id,capture_time))
 		# Transmit image
 		print("Transmitting...")
 		transmit_file("temp.ssdv",tx)

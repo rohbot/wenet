@@ -1,10 +1,23 @@
 #!/bin/bash
 #
 #	Wenet TX-side Initialisation Script
-#	2016-08-07 Mark Jessop <vk5qi@rfhead.net>
+#	2016-12-05 Mark Jessop <vk5qi@rfhead.net>
 #
-#	Run this to set up an attached RFM22B and start transmitting!
+#	Run this to set up an attached RFM22B/RFM98W and start transmitting!
 #	Replace the transmit frequency and callsign with your own.
 #
-python init_rfm22b.py 441.200
-python tx_picam.py VK5QI &
+
+MYCALL=N0CALL
+TXFREQ=441.200
+
+# CHANGE THE FOLLOWING LINE TO REFLECT THE ACTUAL PATH TO THE TX FOLDER.
+# i.e. it may be /home/username/dev/wenet/tx/
+cd ~/wenet/tx/
+
+#Uncomment to initialise a RFM22B
+python init_rfm22b.py $TXFREQ
+# Uncomment for use with a RFM98W
+#python init_rfm98w.py $TXFREQ
+
+# Start the main TX Script.
+python tx_picam.py $MYCALL &

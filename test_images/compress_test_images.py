@@ -31,4 +31,4 @@ new_sizes.append("raw")
 
 for x in image_numbers:
 	for size in new_sizes:
-		os.system("ssdv -e -c %s -i %d %d_%s.jpg %d_%s.ssdv" % (callsign,x,x,size,x,size))
+		os.system("ssdv -e -n -q 6 -c %s -i %d %d_%s.jpg %d_%s.ssdv" % (callsign,x,x,size,x,size))

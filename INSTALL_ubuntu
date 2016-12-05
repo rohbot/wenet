@@ -62,6 +62,7 @@ If not already done above, you will also need to clone the wenet repository:
 > git clone https://github.com/projecthorus/wenet.git
 
 We need some binaries from the codec2-dev repository:
+(Note that we are using a specific revision number to ensure developmental changes don't break things.)
 
 > svn checkout -r 2914 http://svn.code.sf.net/p/freetel/code/codec2-dev/
 > cd codec2-dev
@@ -69,11 +70,11 @@ We need some binaries from the codec2-dev repository:
 > cd build
 > cmake ../
 > make
-> cp src/fsk_demod ~/wenet/
-> cp src/drs232_ldpc ~/wenet/
+> cp src/fsk_demod ~/wenet/rx/
+> cp src/drs232_ldpc ~/wenet/rx/
 
 We also need to copy out the FSK Demod GUI Utility from this repository
-> cp ~/codec2-dev/octave/fskdemodgui.py ~/wenet/
+> cp ~/codec2-dev/octave/fskdemodgui.py ~/wenet/rx/
 
 
 CALLSIGN AND SHORTCUTS SETUP
@@ -91,7 +92,7 @@ If you are using a RTLSDR V3 and need the bias-tee enabled, uncomment the marked
 
 Next, copy the two .desktop files to your desktop by running:
 
-> cp *.desktop ~/Desktop/
+> cp rx/*.desktop ~/Desktop/
 
 If your username is somethign other than 'wenet', you will need to edit the Start_SSDV.desktop file, 
 so that the 'Exec='' line contains the correct path to start_rx.sh
@@ -115,6 +116,7 @@ You can kill all the RX processed by running the 'Kill RX' shortcut on the deskt
 If you have a recorded sample, you can replay it by doing:
 
 Opening the SSDV Viewer GUI by running:
+> cd rx
 > python rx_gui.py &
 
 Then 'playback' the sample file using:
