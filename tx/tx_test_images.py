@@ -12,7 +12,7 @@ import PacketTX,  sys, os
 file_path = "../test_images/%d_raw.ssdv" # _raw, _800x608, _640x480, _320x240
 image_numbers = xrange(1,14)
 
-debug_output = True # If True, packet bits are saved to debug.bin as one char per bit.
+debug_output = False # If True, packet bits are saved to debug.bin as one char per bit.
 
 def transmit_file(filename, tx_object):
 	file_size = os.path.getsize(filename)

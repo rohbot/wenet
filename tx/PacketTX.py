@@ -75,6 +75,7 @@ class PacketTX(object):
 			self.s = BinaryDebug()
 			self.debug = True
 		else:
+			self.debug = False
 			self.s = serial.Serial(serial_port,serial_baud)
 
 
@@ -125,15 +126,15 @@ class PacketTX(object):
 			if self.telemetry_queue.qsize()>0:
 				packet = self.telemetry_queue.get_nowait()
 				self.s.write(packet)
-			elif self.image_queue.qsize()>0:
-				packet = self.image_queue.get_nowait()
+				print("Send Telemetry Packet.")
+			elif self.ssdv_queue.qsize()>0:
+				packet = self.ssdv_queue.get_nowait()
 				self.s.write(packet)
 			else:
 				if not self.debug:
-					#self.s.write(self.idle_sequence)
 					self.s.write(self.idle_message)
 				else:
-					# TODO: Tune this value. Ideally we should be doing a non-blocking 
+					# TODO: Tune this value.
 					sleep(0.05)
 		
 		print("Closing Thread")
@@ -143,14 +144,14 @@ class PacketTX(object):
 		self.transmit_active = False
 
 	def wait(self):
-		while not self.txqueue.empty():
+		while not self.ssdv_queue.empty():
 			sleep(0.01)
 
 	def tx_packet(self,packet,blocking = False):
-		self.txqueue.put(self.frame_packet(packet, self.fec))
+		self.ssdv_queue.put(self.frame_packet(packet, self.fec))
 
 		if blocking:
-			while not self.txqueue.empty():
+			while not self.ssdv_queue.empty():
 				sleep(0.01)
 
 

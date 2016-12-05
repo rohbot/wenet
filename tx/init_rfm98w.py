@@ -28,12 +28,19 @@ if __name__ == '__main__':
     if len(sys.argv)<2:
         print("Usage: \tpython init_rfm98w.py <TX Frequency in MHz>")
         print("Example: \tpython init_rfm98w.py 441.200")
+        print("Alternate usage: python init_rfm98w.py shutdown")
         sys.exit(1)
+
+    shutdown = False
+    tx_freq = 441.200
 
     try:
         tx_freq = float(sys.argv[1])
     except:
-        print("Unable to parse input.")
+        if sys.argv[1] == "shutdown":
+            shutdown = True
+        else:
+            print("Unable to parse input.")
 
     if tx_freq>450.0 or tx_freq<430.00:
         print("Frequency out of 70cm band, using default.")
@@ -47,6 +54,11 @@ if __name__ == '__main__':
     
     # Set us into FSK mode, and set continuous mode on
     lora.set_register(0x01,0x00) # Standby Mode
+    # If we have been asked to shutdown the RFM98W, then exit here.
+    if shutdown:
+        sys.exit(0)
+
+    # Otherwise, proceed.
     lora.set_register(0x31,0x00) # Set Continuous Mode
     
     # Set TX Frequency
