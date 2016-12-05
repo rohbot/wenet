@@ -5,7 +5,9 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 
 ## Flight History
 * v0.1 - First test flight on Horus 37, no FEC. Read more about that here: http://rfhead.net/?p=637
-* v0.2 - Second test flight, with LDPC FEC enabled. - TBD.
+* v0.2 - Second test flight on Horus 39, with LDPC FEC enabled. Read more here: http://www.rowetel.com/?p=5344
+
+![Image downlinked via Wenet on Horus 38](http://rfhead.net/temp/wenet_fec_small.jpeg)
 
 ## Ubuntu 16.04 RX
 * There is now a guide on how to set up a RX station using Ubuntu within the INSTALL_ubuntu file
