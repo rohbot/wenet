@@ -2,13 +2,14 @@
 #
 #	Wenet PiCam Wrapper Class.
 #
-#
+#	PiCamera API: https://picamera.readthedocs.io/en/release-1.12/api_camera.html
 
 from picamera import PiCamera
 from time import sleep
 from threading import Thread
 import glob
 import os
+import datetime
 
 
 class WenetPiCam(object):
@@ -18,6 +19,7 @@ class WenetPiCam(object):
 	Captures multiple images, picks the best, then 
 	transmits it via a PacketTX object. 
 
+
 	"""
 
 	def __init__(self,resolution=(1488,1120), 
@@ -25,11 +27,35 @@ class WenetPiCam(object):
 				vertical_flip = False, 
 				horizontal_flip = False,
 				temp_filename_prefix = 'picam_temp',
-				debug_ptr = None):
+				debug_ptr = None,
+				callsign = "N0CALL"):
+
+		""" Instantiate a WenetPiCam Object
+			used to capture images from a PiCam using 'optimal' capture techniques.
+
+			Keyword Arguments:
+			resolution: Tuple (x,y) containing desired image capture resolution.
+						NOTE: both x and y need to be multiples of 16 to be used with SSDV.
+
+			num_images: Number of images to capture in sequence when the 'capture' function is called.
+						The 'best' (largest filesize) image is selected and saved.
+
+			vertical_flip: Flip captured images vertically.
+			horizontal_flip: Flip captured images horizontally.
+							Used to correct for picam orientation.
+
+			temp_filename_prefix: prefix used for temporary files.
+
+			debug_ptr:	'pointer' to a function which can handle debug messages.
+						This function needs to be able to accept a string.
+						Used to get status messages into the downlink.
+
+		"""
 
 		self.debug_ptr = debug_ptr
 		self.temp_filename_prefix = temp_filename_prefix
 		self.num_images = num_images
+		self.callsign = callsign
 
 		# Attempt to start picam.
 		self.cam = PiCamera()
@@ -62,7 +88,13 @@ class WenetPiCam(object):
 	def close(self):
 		self.cam.close()
 
-	def capture(self, filename='output.jpg'):
+	def capture(self, filename='picam.jpg'):
+		""" Capture an image using the PiCam
+			
+			Keyword Arguments:
+			filename:	destination filename.
+		"""
+
 		# Attempt to capture a set of images.
 		for i in range(self.num_images):
 			self.debug_message("Capturing Image %d of %d" % (i+1,self.num_images))
@@ -92,4 +124,186 @@ class WenetPiCam(object):
 
 		return True 
 
+	def ssdvify(self, filename="output.jpg", image_id=0, quality=6):
+		""" Convert a supplied JPEG image to SSDV.
+
+		Keyword Arguments:
+		filename:	Source JPEG filename.
+					Output SSDV image will be saved to this filename, with .jpg replaced by .ssdv
+		callsign:	Payload callsign. Max 6 Alphanumeric characters.
+		image_id:	Image ID number. Must be incremented between images.
+		quality:	JPEG quality level: 4 - 7, where 7 is 'lossless' (not recommended).
+					6 provides good quality at decent file-sizes.
+
+		"""
+
+		# Get non-extension part of filename.
+		file_basename = filename[:-4]
+
+		# Construct SSDV command-line.
+		ssdv_command = "ssdv -e -n -q %d -c %s -i %d %s %s.ssdv" % (quality, self.callsign, image_id, filename, file_basename)
+		print(ssdv_command)
+		# Update debug message.
+		self.debug_message("Converting image to SSDV.")
+
+		# Run SSDV converter.
+		return_code = os.system(ssdv_command)
+
+		if return_code != 0:
+			self.debug_message("ERROR: Could not perform SSDV Conversion.")
+			return "FAIL"
+		else:
+			return file_basename + ".ssdv"
+
+	auto_capture_running = False
+	def auto_capture(self, destination_directory, transmit_packet, queue_empty, post_process_ptr=None, delay = 0, start_id = 0):
+		""" Automatically capture and transmit images in a loop.
+		Images are automatically saved to a supplied directory, with file-names
+		defined using a timestamp.
+
+		Use the run() and stop() functions to start/stop this running.
+		
+		Keyword Arguments:
+		destination_directory:	Folder to save images to. Both raw JPEG and SSDV images are saved here.
+		transmit_packet: A thread-safe python function which SSDV image packets will be pushed into for
+						transmission. 
+		queue_empty:	A function which reports the state of the transmission queue. We use this to decide when
+						to start pushing new packets into the queue.
+		post_process_ptr: An optional function which is called after the image is captured. This function
+						  will be passed the path/filename of the captured image.
+						  This can be used to add overlays, etc to the image before it is SSDVified and transmitted.
+						  NOTE: This function need to modify the image in-place.
+		delay:	An optional delay in seconds between capturing images. Defaults to 0.
+				This delay is added on top of any delays caused while waiting for the transmit queue to empty.
+		start_id: Starting image ID. Defaults to 0.
+		"""
+
+		image_id = start_id
+
+		while self.auto_capture_running:
+			# Sleep before capturing next image.
+			sleep(delay)
+
+			# Grab current timestamp.
+			capture_time = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
+			capture_filename = destination_directory + "/%s_picam.jpg" % capture_time
+
+			# Attempt to capture.
+			capture_successful = self.capture(capture_filename)
+
+			# If capture was unsuccessful, exit out of this thead, as clearly
+			# the camera isn't working.
+			if not capture_successful:
+				return
+
+			# Otherwise, proceed to post-processing step.
+			if post_process_ptr != None:
+				try:
+					self.debug_message("Running Image Post-Processing")
+					post_process_ptr(capture_filename)
+				except:
+					self.debug_message("Image Post-Processing Failed.")
+
+			# SSDV'ify the image.
+			ssdv_filename = self.ssdvify(capture_filename, image_id=image_id)
+
+			# Check the SSDV Conversion has completed properly. If not, break.
+			if ssdv_filename == "FAIL":
+				return
+
+
+			# Otherwise, read in the file and push into the TX buffer.
+			file_size = os.path.getsize(ssdv_filename)
+
+			# Wait until the transmit queue is empty before pushing in packets.
+			self.debug_message("Waiting for SSDV TX queue to empty.")
+			while queue_empty() == False:
+				sleep(0.05) # Sleep for a short amount of time.
+				if self.auto_capture_running == False:
+					return
+
+			# Inform ground station we are about to send an image.
+			self.debug_message("Transmitting %d PiCam SSDV Packets." % (file_size/256))
+
+			# Push SSDV file into transmit queue.
+			f = open(ssdv_filename,'rb')
+			for x in range(file_size/256):
+				data = f.read(256)
+				transmit_packet(data)
+			f.close()
+
+			# Increment image ID.
+			image_id = (image_id + 1) % 256
+		# Loop!
+
+
+	def run(self, destination_directory, transmit_packet, queue_empty, post_process_ptr=None, delay = 0, start_id = 0):
+		""" Start auto-capturing images in a thread.
+
+		Refer auto_capture function above.
+		
+		Keyword Arguments:
+		destination_directory:	Folder to save images to. Both raw JPEG and SSDV images are saved here.
+		transmit_packet: A thread-safe python function which SSDV image packets will be pushed into for
+						transmission. 
+		queue_empty:	A function which reports the state of the transmission queue. We use this to decide when
+						to start pushing new packets into the queue.
+		post_process_ptr: An optional function which is called after the image is captured. This function
+						  will be passed the path/filename of the captured image.
+						  This can be used to add overlays, etc to the image before it is SSDVified and transmitted.
+						  NOTE: This function need to modify the image in-place.
+		delay:	An optional delay in seconds between capturing images. Defaults to 0.
+				This delay is added on top of any delays caused while waiting for the transmit queue to empty.
+		start_id: Starting image ID. Defaults to 0.
+		"""		
+
+		self.auto_capture_running = True
+
+		capture_thread = Thread(target=self.auto_capture, kwargs=dict(
+			destination_directory=destination_directory,
+			transmit_packet=transmit_packet,
+			queue_empty=queue_empty,
+			post_process_ptr=post_process_ptr,
+			delay=delay,
+			start_id=start_id))
+
+		capture_thread.start()
+
+	def stop(self):
+		self.auto_capture_running = False
+
+
+# Basic transmission test script.
+if __name__ == "__main__":
+	import PacketTX
+	import argparse
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument("callsign", default="N0CALL", help="Payload Callsign")
+	args = parser.parse_args()
+
+	callsign = args.callsign
+	print("Using Callsign: %s" % callsign)
+
+	def post_process(filename):
+		print("Doing nothing with %s" % filename)
+
+	tx = PacketTX.PacketTX(callsign=callsign)
+	tx.start_tx()
+
+	picam = WenetPiCam(callsign=callsign, debug_ptr=None)
+
+	picam.run(destination_directory="./tx_images/", 
+		transmit_packet = tx.queue_image_packet, 
+		queue_empty = tx.image_queue_empty,
+		post_process_ptr = post_process
+		)
+	try:
+		while True:
+			tx.transmit_text_message("Waiting...")
+			sleep(5)
+	except KeyboardInterrupt:
+		print("Closing")
+		picam.stop()
+		tx.close()
 

@@ -9,12 +9,19 @@
 #
 
 
-import os,sys, datetime, argparse, socket
+import os
+import sys
+import datetime
+import argparse
+import socket
+from WenetPackets import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--hex", action="store_true", help="Take Hex strings as input instead of raw data.")
 parser.add_argument("--partialupdate",default=0,help="Push partial updates every N packets to GUI.")
 args = parser.parse_args()
+
+
 
 # Helper functions to extract data from SSDV packets.
 
@@ -52,10 +59,33 @@ def ssdv_packet_string(packet_info):
 	return "%s \tSSDV: %s, Img:%d, Pkt:%d, %dx%d" % (datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S.%fZ"), packet_info['packet_type'],packet_info['image_id'],packet_info['packet_id'],packet_info['width'],packet_info['height'])
 
 
+# GUI updates are only sent locally.
 def trigger_gui_update(filename):
 	gui_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-	gui_socket.sendto(filename,("127.0.0.1",7890))
+	gui_socket.sendto(filename,("127.0.0.1",WENET_IMAGE_UDP_PORT))
 	gui_socket.close()
+
+# Telemetry packets are send via UDP broadcast in case there is other software on the local
+# network that wants them.
+def broadcast_telemetry_packet(data):
+	telemetry_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+	# Set up the telemetry socket so it can be re-used.
+	telemetry_socket.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
+	telemetry_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+	# We need the following if running on OSX.
+	try:
+        telemetry_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    except:
+        pass
+
+    # Send to broadcast if we can.
+    try:
+        telemetry_socket.sendto(json.dumps(data), ('<broadcast>', WENET_TELEMETRY_UDP_PORT))
+    except socket.error:
+        telemetry_socket.sendto(json.dumps(data), ('127.0.0.1', WENET_TELEMETRY_UDP_PORT))
+
+	telemetry_socket.close()
 
 # State variables
 current_image = -1

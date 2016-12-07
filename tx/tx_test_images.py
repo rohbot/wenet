@@ -34,7 +34,7 @@ def transmit_file(filename, tx_object):
 	tx_object.wait()
 
 
-tx = PacketTX.PacketTX(debug=debug_output,fec=False)
+tx = PacketTX.PacketTX(debug=debug_output)
 tx.start_tx()
 print("TX Started. Press Ctrl-C to stop.")
 try:

@@ -102,7 +102,8 @@ class PacketTX(object):
 		crc = struct.pack("<H",self.crc16(packet))
 
 		if fec:
-			return self.preamble + self.unique_word + packet + crc + ldpc_encode_string(packet+crc)
+			parity = ldpc_encode_string(packet + crc)
+			return self.preamble + self.unique_word + packet + crc + parity
 		else:
 			return self.preamble + self.unique_word + packet + crc 
 
@@ -153,6 +154,27 @@ class PacketTX(object):
 		if blocking:
 			while not self.ssdv_queue.empty():
 				sleep(0.01)
+
+	def queue_image_packet(self,packet):
+		self.ssdv_queue.put(self.frame_packet(packet, self.fec))
+
+	def image_queue_empty(self):
+		return self.ssdv_queue.qsize() == 0
+
+	def queue_telemetry_packet(self, packet):
+		self.telemetry_queue.put(self.frame_packet(packet, self.fec))
+
+	def telemetry_queue_empty(self):
+		return self.telemetry_queue.qsize() == 0
+
+	def transmit_text_message(self,message):
+		# Clip message if required.
+		if len(message) > 254:
+			message = message[:254]
+
+		packet = "\x00" + struct.pack("B",len(message)) + message
+
+		self.queue_telemetry_packet(packet)
 
 
 

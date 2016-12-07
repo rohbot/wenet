@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-#-*- coding:utf-8 -*-
+#
+#   SSDV RX GUI
+#
+#
 
+from WenetPackets import *
 import sip, socket, Queue
 from threading import Thread
 sip.setapi('QString', 2)
@@ -63,7 +67,7 @@ def udp_rx():
     s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     s.settimeout(1)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('',7890))
+    s.bind(('',WENET_IMAGE_UDP_PORT))
     print("Started UDP Listener Thread.")
     udp_listener_running = True
     while udp_listener_running:
