@@ -156,7 +156,7 @@ class WenetPiCam(object):
 			return file_basename + ".ssdv"
 
 	auto_capture_running = False
-	def auto_capture(self, destination_directory, transmit_packet, queue_empty, post_process_ptr=None, delay = 0, start_id = 0):
+	def auto_capture(self, destination_directory, tx, post_process_ptr=None, delay = 0, start_id = 0):
 		""" Automatically capture and transmit images in a loop.
 		Images are automatically saved to a supplied directory, with file-names
 		defined using a timestamp.
@@ -165,10 +165,7 @@ class WenetPiCam(object):
 		
 		Keyword Arguments:
 		destination_directory:	Folder to save images to. Both raw JPEG and SSDV images are saved here.
-		transmit_packet: A thread-safe python function which SSDV image packets will be pushed into for
-						transmission. 
-		queue_empty:	A function which reports the state of the transmission queue. We use this to decide when
-						to start pushing new packets into the queue.
+		tx:		A reference to a PacketTX Object, which is used to transmit packets, and interrogate the TX queue.
 		post_process_ptr: An optional function which is called after the image is captured. This function
 						  will be passed the path/filename of the captured image.
 						  This can be used to add overlays, etc to the image before it is SSDVified and transmitted.
@@ -217,7 +214,7 @@ class WenetPiCam(object):
 
 			# Wait until the transmit queue is empty before pushing in packets.
 			self.debug_message("Waiting for SSDV TX queue to empty.")
-			while queue_empty() == False:
+			while tx.image_queue_empty() == False:
 				sleep(0.05) # Sleep for a short amount of time.
 				if self.auto_capture_running == False:
 					return
@@ -226,28 +223,21 @@ class WenetPiCam(object):
 			self.debug_message("Transmitting %d PiCam SSDV Packets." % (file_size/256))
 
 			# Push SSDV file into transmit queue.
-			f = open(ssdv_filename,'rb')
-			for x in range(file_size/256):
-				data = f.read(256)
-				transmit_packet(data)
-			f.close()
+			tx.queue_image_file(ssdv_filename)
 
 			# Increment image ID.
 			image_id = (image_id + 1) % 256
 		# Loop!
 
 
-	def run(self, destination_directory, transmit_packet, queue_empty, post_process_ptr=None, delay = 0, start_id = 0):
+	def run(self, destination_directory, tx, post_process_ptr=None, delay = 0, start_id = 0):
 		""" Start auto-capturing images in a thread.
 
 		Refer auto_capture function above.
 		
 		Keyword Arguments:
 		destination_directory:	Folder to save images to. Both raw JPEG and SSDV images are saved here.
-		transmit_packet: A thread-safe python function which SSDV image packets will be pushed into for
-						transmission. 
-		queue_empty:	A function which reports the state of the transmission queue. We use this to decide when
-						to start pushing new packets into the queue.
+		tx:		A reference to a PacketTX Object, which is used to transmit packets, and interrogate the TX queue.
 		post_process_ptr: An optional function which is called after the image is captured. This function
 						  will be passed the path/filename of the captured image.
 						  This can be used to add overlays, etc to the image before it is SSDVified and transmitted.
@@ -261,8 +251,7 @@ class WenetPiCam(object):
 
 		capture_thread = Thread(target=self.auto_capture, kwargs=dict(
 			destination_directory=destination_directory,
-			transmit_packet=transmit_packet,
-			queue_empty=queue_empty,
+			tx = tx,
 			post_process_ptr=post_process_ptr,
 			delay=delay,
 			start_id=start_id))
@@ -271,6 +260,11 @@ class WenetPiCam(object):
 
 	def stop(self):
 		self.auto_capture_running = False
+
+	# TODO: Non-blocking image capture.
+	capture_finished = False
+	def trigger_capture():
+		pass
 
 
 # Basic transmission test script.
@@ -291,11 +285,10 @@ if __name__ == "__main__":
 	tx = PacketTX.PacketTX(callsign=callsign)
 	tx.start_tx()
 
-	picam = WenetPiCam(callsign=callsign, debug_ptr=None)
+	picam = WenetPiCam(callsign=callsign, debug_ptr=tx.transmit_text_message)
 
 	picam.run(destination_directory="./tx_images/", 
-		transmit_packet = tx.queue_image_packet, 
-		queue_empty = tx.image_queue_empty,
+		tx = tx,
 		post_process_ptr = post_process
 		)
 	try:

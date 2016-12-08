@@ -21,6 +21,7 @@
 import serial
 import Queue
 import sys
+import os
 import crcmod
 import struct
 from time import sleep
@@ -66,6 +67,9 @@ class PacketTX(object):
 
 	# Transmit thread active flag.
 	transmit_active = False
+
+	# Internal counter for text messages.
+	text_message_count = 0
 
 	# WARNING: 115200 baud is ACTUALLY 115386.834 baud, as measured using a freq counter.
 	def __init__(self,serial_port="/dev/ttyAMA0", serial_baud=115200, payload_length=256, fec=True, debug = False, callsign="N0CALL"):
@@ -127,7 +131,7 @@ class PacketTX(object):
 			if self.telemetry_queue.qsize()>0:
 				packet = self.telemetry_queue.get_nowait()
 				self.s.write(packet)
-				print("Send Telemetry Packet.")
+				print("Sent Telemetry Packet.")
 			elif self.ssdv_queue.qsize()>0:
 				packet = self.ssdv_queue.get_nowait()
 				self.s.write(packet)
@@ -144,10 +148,8 @@ class PacketTX(object):
 	def close(self):
 		self.transmit_active = False
 
-	def wait(self):
-		while not self.ssdv_queue.empty():
-			sleep(0.01)
 
+	# Deprecated function
 	def tx_packet(self,packet,blocking = False):
 		self.ssdv_queue.put(self.frame_packet(packet, self.fec))
 
@@ -155,8 +157,33 @@ class PacketTX(object):
 			while not self.ssdv_queue.empty():
 				sleep(0.01)
 
+	# Deprecated function.
+	def wait(self):
+		while not self.ssdv_queue.empty():
+			sleep(0.01)
+
+	# New packet queueing and queue querying functions (say that 3 times fast)
+
 	def queue_image_packet(self,packet):
 		self.ssdv_queue.put(self.frame_packet(packet, self.fec))
+
+	def queue_image_file(self, filename):
+		""" Read in <filename> and transmit it, 256 bytes at a time.
+			Intended for transmitting SSDV packets.
+
+		"""
+
+		file_size = os.path.getsize(filename)
+		try:
+			f = open(filename,'rb')
+			for x in range(file_size/256):
+				data = f.read(256)
+				self.queue_image_packet(data)
+			f.close()
+			return True
+		except:
+			return False
+
 
 	def image_queue_empty(self):
 		return self.ssdv_queue.qsize() == 0
@@ -169,12 +196,15 @@ class PacketTX(object):
 
 	def transmit_text_message(self,message):
 		# Clip message if required.
-		if len(message) > 254:
-			message = message[:254]
+		if len(message) > 252:
+			message = message[:252]
 
-		packet = "\x00" + struct.pack("B",len(message)) + message
+		packet = "\x00" + struct.pack(">BH",len(message),self.text_message_count) + message
 
 		self.queue_telemetry_packet(packet)
+		print("TXing Text Message #%d: %s" % (self.text_message_count,message))
+		# Increment text message counter.
+		self.text_message_count = (self.text_message_count+1)%65536
 
 
 

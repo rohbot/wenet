@@ -5,7 +5,7 @@
 #
 
 from WenetPackets import *
-import sip, socket, Queue
+import sip, socket, Queue, json
 from threading import Thread
 sip.setapi('QString', 2)
 sip.setapi('QVariant', 2)
@@ -13,7 +13,7 @@ sip.setapi('QVariant', 2)
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt
 
-# Auto-resizing Label.
+# Auto-resizing Widget, to contain displayed image.
 class Label(QtGui.QLabel):
     def __init__(self, img):
         super(Label, self).__init__()
@@ -44,18 +44,19 @@ class MyWindow(QtGui.QWidget):
         self.rxqueue = Queue.Queue(16)
 
     @QtCore.pyqtSlot(str)
-    def changeImage(self, pathToImage):
+    def changeImage(self, pathToImage, text_message):
         print(pathToImage)
         pixmap = QtGui.QPixmap(pathToImage)
         self.label.pixmap = pixmap
         self.label.repaint()
-        self.statusLabel.setText(pathToImage)
+        self.statusLabel.setText(text_message)
         print("Repainted")
 
     def read_queue(self):
         try:
-            new_image = self.rxqueue.get_nowait()
-            self.changeImage(new_image)
+            new_packet = self.rxqueue.get_nowait()
+            packet_data = json.loads(new_packet)
+            self.changeImage(packet_data['filename'],packet_data['text'])
         except:
             pass
 
@@ -77,8 +78,7 @@ def udp_rx():
             m = None
         
         if m != None:
-            print(m[0])
-            udp_callback(m[0].rstrip())
+            udp_callback(m[0])
 
     print("Closing UDP Listener")
     s.close()
