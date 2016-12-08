@@ -63,7 +63,7 @@ class PacketTX(object):
 	preamble = "\x55"*16
 
 	# Idle sequence, transmitted if there is nothing in the transmit queues.
-	idle_sequence = "\x55"*256
+	idle_sequence = "\x56"*256
 
 	# Transmit thread active flag.
 	transmit_active = False
@@ -85,10 +85,11 @@ class PacketTX(object):
 
 		self.payload_length = payload_length
 		self.callsign = callsign
-		self.idle_message = "DE %s" % callsign
 		self.fec = fec
 
 		self.crc16 = crcmod.predefined.mkCrcFun('crc-ccitt-false')
+
+		self.idle_message = self.frame_packet(self.idle_sequence,fec=fec)
 
 	def start_tx(self):
 		self.transmit_active = True
@@ -101,7 +102,7 @@ class PacketTX(object):
 			packet = packet[:self.payload_length]
 
 		if len(packet) < self.payload_length:
-			packet = packet + "\x00"*(self.payload_length - len(packet))
+			packet = packet + "\x55"*(self.payload_length - len(packet))
 
 		crc = struct.pack("<H",self.crc16(packet))
 

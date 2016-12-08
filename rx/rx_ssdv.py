@@ -74,7 +74,10 @@ while True:
 
 	packet_type = decode_packet_type(data)
 
-	if packet_type == WENET_PACKET_TYPES.TEXT_MESSAGE:
+
+	if packet_type == WENET_PACKET_TYPES.IDLE:
+		continue
+	elif packet_type == WENET_PACKET_TYPES.TEXT_MESSAGE:
 		message = decode_text_message(data)
 		broadcast_telemetry_packet(data)
 

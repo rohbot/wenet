@@ -14,6 +14,7 @@ class WENET_PACKET_TYPES:
 	TELEMETRY 				= 0x01
 	# Your packet types here!
 	SSDV 					= 0x55
+	IDLE					= 0x56
 
 
 
