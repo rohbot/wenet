@@ -189,20 +189,21 @@ class PacketTX(object):
 	def image_queue_empty(self):
 		return self.ssdv_queue.qsize() == 0
 
-	def queue_telemetry_packet(self, packet):
-		self.telemetry_queue.put(self.frame_packet(packet, self.fec))
+	def queue_telemetry_packet(self, packet, repeats = 1):
+		for n in range(repeats):
+			self.telemetry_queue.put(self.frame_packet(packet, self.fec))
 
 	def telemetry_queue_empty(self):
 		return self.telemetry_queue.qsize() == 0
 
-	def transmit_text_message(self,message):
+	def transmit_text_message(self,message, repeats = 1):
 		# Clip message if required.
 		if len(message) > 252:
 			message = message[:252]
 
 		packet = "\x00" + struct.pack(">BH",len(message),self.text_message_count) + message
 
-		self.queue_telemetry_packet(packet)
+		self.queue_telemetry_packet(packet, repeats=repeats)
 		print("TXing Text Message #%d: %s" % (self.text_message_count,message))
 		# Increment text message counter.
 		self.text_message_count = (self.text_message_count+1)%65536
