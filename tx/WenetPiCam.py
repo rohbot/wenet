@@ -10,6 +10,7 @@ from threading import Thread
 import glob
 import os
 import datetime
+import traceback
 
 
 class WenetPiCam(object):
@@ -75,7 +76,7 @@ class WenetPiCam(object):
 	def debug_message(self, message):
 		""" Write a debug message.
 		If debug_ptr was set to a function during init, this will
-		write pass the message to that function, else it will just print it.
+		pass the message to that function, else it will just print it.
 		This is used mainly to get updates on image capture into the Wenet downlink.
 
 		"""
@@ -199,6 +200,7 @@ class WenetPiCam(object):
 					self.debug_message("Running Image Post-Processing")
 					post_process_ptr(capture_filename)
 				except:
+					traceback.print_exc()
 					self.debug_message("Image Post-Processing Failed.")
 
 			# SSDV'ify the image.

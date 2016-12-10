@@ -1,11 +1,12 @@
 # Wenet - The Swift One
 Modulator and glue code for the 115kbps SSDV experiment.
 
-The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAMA0) is used to modulate a RFM22B in direct-asynchronous mode. I expect other transmitters could probably be used (i.e. NTX2's or similar) at lower bandwidths.
+The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAMA0) is used to modulate a RFM98W (yes, a LoRa module) in direct-asynchronous mode. I expect other transmitters could probably be used (i.e. NTX2's or similar) at lower bandwidths.
 
 ## Flight History
 * v0.1 - First test flight on Horus 37, no FEC. Read more about that here: http://rfhead.net/?p=637
 * v0.2 - Second test flight on Horus 39, with LDPC FEC enabled. Read more here: http://www.rowetel.com/?p=5344
+* v0.3 - Third test flight - sometime in Jan 2017.
 
 ![Image downlinked via Wenet on Horus 38](http://rfhead.net/temp/wenet_fec_small.jpeg)
 The above image was captured on Horus 38, and downlinked via Wenet.
@@ -22,10 +23,11 @@ The above image was captured on Horus 38, and downlinked via Wenet.
 * PyQtGraph & PyQt4 (for FSK Modem Stats and SSDV GUI: `pip install pyqtgraph`)
 
 ## Main Programs
-* `rx_ssdv.py` - Reads in received packets (256 byte SSDV frames) via stdin, and decodes them to JPEGs. Also informs other processes (via UDP broadcast) of new data.
-* `rx_gui.py` - Displays last received image, as commanded by rx_ssdv.py via UDP.
-* `init_rfm22b.py` - Set RFM22B (attached via SPI to the RPi) into Direct-Asynchronous mode. 
-* `tx_picam.py` - Captures pictures using the PiCam, and transmits them.
+* `rx/rx_ssdv.py` - Reads in received packets (256 byte SSDV frames) via stdin, and decodes them to JPEGs. Also informs other processes (via UDP broadcast) of new ssdv and telemetry data.
+* `rx/rx_gui.py` - Displays last received image, as commanded by rx_ssdv.py via UDP.
+* `tx/init_rfm22b.py` - Set RFM22B (attached via SPI to the RPi) into Direct-Asynchronous mode.
+* `tx/init_rfm98w.py` - Set RFM98W (attached via SPI to the RPi) into Direct-Asynchronous mode. 
+* `tx_picam_gps.py` - Captures pictures using the PiCam, overlays GPS data and transmits them.
 
 ## Testing Scripts
 * Run `python compress_test_images.py` from within ./test_images/ to produce the set of test ssdv-compressed files.
@@ -42,10 +44,11 @@ The above image was captured on Horus 38, and downlinked via Wenet.
 ## Sending/Receiving Images
 ### TX Side
 * The LDPC encoder library needs ldpc_enc.c compiled to a shared library. Run: `gcc -fPIC -shared -o ldpc_enc.so ldpc_enc.c` to do this.
-* Run either `python tx_picam.py` (might need sudo to access camera & SPI) or `python tx_test_images.py` on the transmitter Raspberry Pi. There's also a start_tx.sh bash script which also sets up a RFM22B. I run this bash script from /etc/rc.local so it starts on boot.
+* Run either `python WenetPiCam.py (might need sudo to access camera & SPI) or `python tx_test_images.py` on the transmitter Raspberry Pi. There's also a start_tx.sh bash script which also sets up a RFM22B or RFM98W. I run this bash script from /etc/rc.local so it starts on boot.
 
 #### IMPORTANT NOTES
-* While the transit code requests an output baud rate of 115200 baud from the RPi's UART, the acheived baud rate (due to clock divisors) is actually 115386.843 baud (measured using a frequency counter). All of the resampling within the receive chain had to be adjusted accordingly, which means CPU-intensive fractional decimators.
+* While the transit code requests an output baud rate of 115200 baud from the RPi's UART, the acheived baud rate (due to clock divisors) on a RPi A+ is actually 115386.843 baud (measured using a frequency counter). All of the resampling within the receive chain had to be adjusted accordingly, which means CPU-intensive fractional decimators.
+ * Baud rates on other RPi models may be different - best to measure and check!
 * Apparently the newer Raspberry Pi's (or possibly just a newer version of Raspbian) use the alternate UART hardware by default, which has a smaller transmit buffer. This may result in gaps between bytes, which will likely throw the rx timing estimation off.
 
 ### RX Side

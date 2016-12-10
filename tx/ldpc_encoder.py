@@ -13,6 +13,7 @@ import ctypes
 from numpy.ctypeslib import ndpointer
 import numpy as np
 import time
+import sys
 
 
 # Attempt to load in ldpc_enc.so on startup.
@@ -29,6 +30,7 @@ try:
 
 except OSError as e:
     print("WARNING: Could not find ldpc_enc.so! Have you compiled ldpc_enc.c? \n gcc -fPIC -shared -o ldpc_enc.so ldpc_enc.c")
+    sys.exit(1)
 
 #
 #   LDPC Encoder.

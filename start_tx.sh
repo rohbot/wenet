@@ -15,9 +15,13 @@ TXFREQ=441.200
 cd ~/wenet/tx/
 
 #Uncomment to initialise a RFM22B
-python init_rfm22b.py $TXFREQ
+#python init_rfm22b.py $TXFREQ
 # Uncomment for use with a RFM98W
-#python init_rfm98w.py $TXFREQ
+python init_rfm98w.py $TXFREQ
 
 # Start the main TX Script.
-python tx_picam.py $MYCALL &
+# Note, this assumes there is a uBlox GPS available at /dev/ttyACM0
+python tx_picam_gps.py $MYCALL &
+
+# If you don't want any GPS overlays, you can comment the above line and run:
+# python WenetPiCam.py $MYCALL &

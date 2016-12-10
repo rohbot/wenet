@@ -110,7 +110,7 @@ Three windows should appear:
 - The FSK Demodulator Modem Statistics window, and
 - The SSDV Viewer GUI
 
-You can kill all the RX processed by running the 'Kill RX' shortcut on the desktop.
+You can kill all the RX processes by running the 'Kill RX' shortcut on the desktop.
 
 
 If you have a recorded sample, you can replay it by doing:

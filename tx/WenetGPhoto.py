@@ -7,6 +7,7 @@
 #	WARNING: GPhoto is *really* slow at taking pictures.
 #			 Suggest not using the multiple-image mode.
 #
+#
 
 from time import sleep
 from threading import Thread

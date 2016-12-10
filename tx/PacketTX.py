@@ -132,7 +132,6 @@ class PacketTX(object):
 			if self.telemetry_queue.qsize()>0:
 				packet = self.telemetry_queue.get_nowait()
 				self.s.write(packet)
-				print("Sent Telemetry Packet.")
 			elif self.ssdv_queue.qsize()>0:
 				packet = self.ssdv_queue.get_nowait()
 				self.s.write(packet)

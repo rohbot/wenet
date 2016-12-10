@@ -3,6 +3,7 @@
 UBlox binary protocol handling
 
 Copyright Andrew Tridgell, October 2012
+https://github.com/tridge/pyUblox
 Released under GNU GPL version 3 or later
 
 Added UBloxGPS abstraction layer class for use with Wenet TX system.
@@ -902,15 +903,16 @@ class UBloxGPS(object):
         # Basic Position Information
         'latitude':     0.0,
         'longitude':    0.0,
-        'altitude':     0.0,
-        'ground_speed': 0.0,
-        'heading':      0.0,
+        'altitude':     0.0,    # Altitude in metres.
+        'ground_speed': 0.0,    # Ground speed in KPH
+        'ascent_rate':  0.0,    # Descent rate in m/s
+        'heading':      0.0,    # Heading in degrees True.
 
         # GPS State
-        'gpsFix':       0,
-        'numSV':        0,
-        'iTOW':   0,
-        'dynamic_model': 0
+        'gpsFix':       0, 
+        'numSV':        0,      # Number of satellites in use.
+        'iTOW':         0,      # Time-of-Week of last fix.        
+        'dynamic_model': 0      # Current dynamic model in use.
     }
     state_writelock = False
     state_readlock = False
@@ -959,7 +961,7 @@ class UBloxGPS(object):
     def debug_message(self, message):
         """ Write a debug message.
         If debug_ptr was set to a function during init, this will
-        write pass the message to that function, else it will just print it.
+        pass the message to that function, else it will just print it.
         This is used mainly to get updates on image capture into the Wenet downlink.
 
         """
@@ -999,17 +1001,27 @@ class UBloxGPS(object):
             and update our internal state table.
         """
         while self.rx_running:
-            msg = self.gps.receive_message()
-
-            if msg is None:
+            try:
+                msg = self.gps.receive_message()
+                msg_name = msg.name()
+            except Exception as e:
+                self.debug_message("WARNING: GPS Failure. Attempting to reconnect.")
+                self.write_state('numSV',0)
                 # Attempt to re-open GPS.
-                self.gps.close()
-                self.gps = UBlox(self.port, self.baudrate, self.timeout)
-                self.setup_ublox()
-                self.debug_message("WARNING: Reconnected to GPS unit")
-                continue
+                time.sleep(5)
+                try:
+                    self.gps.close()
+                except:
+                    pass
 
+                try:
+                    self.gps = UBlox(self.port, self.baudrate, self.timeout)
+                    self.setup_ublox()
+                    self.debug_message("WARNING: GPS Re-connected.")
+                except:
+                    continue
 
+            # If we have received a message we care about, unpack it and update our state dict.
             if msg.name() == "NAV_SOL":
                 msg.unpack()
                 self.write_state('numSV', msg.numSV)
@@ -1026,6 +1038,7 @@ class UBloxGPS(object):
                 msg.unpack()
                 self.write_state('ground_speed', msg.gSpeed*0.036) # Convert to kph
                 self.write_state('heading', msg.heading*1.0e-5)
+                self.write_state('ascent_rate', msg.velD/100.0)
 
             elif msg.name() == "CFG_NAV5":
                 msg.unpack()
