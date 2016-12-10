@@ -197,6 +197,8 @@ class PacketTX(object):
 		return self.telemetry_queue.qsize() == 0
 
 	def transmit_text_message(self,message, repeats = 1):
+		# Increment text message counter.
+		self.text_message_count = (self.text_message_count+1)%65536
 		# Clip message if required.
 		if len(message) > 252:
 			message = message[:252]
@@ -205,8 +207,6 @@ class PacketTX(object):
 
 		self.queue_telemetry_packet(packet, repeats=repeats)
 		print("TXing Text Message #%d: %s" % (self.text_message_count,message))
-		# Increment text message counter.
-		self.text_message_count = (self.text_message_count+1)%65536
 
 
 
