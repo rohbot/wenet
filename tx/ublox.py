@@ -917,7 +917,32 @@ class UBloxGPS(object):
     state_writelock = False
     state_readlock = False
 
-    def __init__(self,port='/dev/ttyACM0',baudrate=115200,timeout=2,update_rate_ms=500,dynamic_model=DYNAMIC_MODEL_AIRBORNE1G, debug_ptr = None):
+    def __init__(self,port='/dev/ttyACM0', baudrate=115200, timeout=2,
+            callback=None,
+            update_rate_ms=500,
+            dynamic_model=DYNAMIC_MODEL_AIRBORNE1G,
+            debug_ptr = None):
+
+        """ Initialise a UBloxGPS Abstraction layer object.
+        
+        Keyword Arguments:
+        port:   Serial Port where uBlox is connected. 
+        baudrate: Serial port baud-rate.
+        timeout: Serial port timeout.
+
+        callback: reference to a callback function that will be passed a copy of the above
+                  state dictionary upon receipt of a GPS fix from the uBlox.
+                  NOTE: The callback will be called in a separate thread.
+
+        update_rate_ms: Requested GPX fix rate. uBlox chip is capable of max 10Hz (100ms) updates.
+        dynamic_model: Dynamic model to use. See above for list of possible models.
+
+        debug_ptr:  Reference to a function which can handle debug messages and do something useful with them.
+                    In the wenet payload, we use this to link this object to the PacketTX object to be able to
+                    transit debug messages to the ground.
+
+        """
+
         # Copy supplied values.
         self.port = port
         self.baudrate = baudrate
@@ -925,6 +950,7 @@ class UBloxGPS(object):
         self.dynamic_model = dynamic_model
         self.update_rate_ms = update_rate_ms
         self.debug_ptr = debug_ptr
+        self.callback = callback
 
         # Attempt to inialise.
         self.gps = UBlox(self.port, self.baudrate, self.timeout)
@@ -993,17 +1019,40 @@ class UBloxGPS(object):
 
         return state_copy
 
+    def gps_callback(self):
+        """ Pass the latest GPS state to an external callback function """
+        # Grab latest state.
+        latest_state = self.read_state()
+
+        if self.callback == None:
+            return
+
+        self.callback(latest_state)
+
+
+
 
     rx_running = True
     def rx_loop(self):
         """ Main RX Loop 
             In here we process all incoming messages from the uBlox GPS unit,
             and update our internal state table.
+
+            Based on a bit of testing, with the above setup of polling, the uBlox chip
+            seems to consistently output messages every fix in the following order:
+                NAV_SOL
+                NAV_STATUS
+                NAV_POSLLH
+                NAV_VELNED
+            These messages are all from the same GPS solution, and so we can use the arrival
+            of a NAV_VELNED packet to signify that we have a 'complete' GPS solution, which can
+            then be passed off to a callback function.
         """
         while self.rx_running:
             try:
                 msg = self.gps.receive_message()
                 msg_name = msg.name()
+                #print(msg_name)
             except Exception as e:
                 self.debug_message("WARNING: GPS Failure. Attempting to reconnect.")
                 self.write_state('numSV',0)
@@ -1032,13 +1081,17 @@ class UBloxGPS(object):
                 self.write_state('latitude', msg.Latitude*1.0e-7)
                 self.write_state('longitude', msg.Longitude*1.0e-7)
                 self.write_state('altitude', msg.height*1.0e-3)
-                self.write_state('iTOW', msg.iTOW*1.0e-3)
 
             elif msg.name() == "NAV_VELNED":
                 msg.unpack()
                 self.write_state('ground_speed', msg.gSpeed*0.036) # Convert to kph
                 self.write_state('heading', msg.heading*1.0e-5)
                 self.write_state('ascent_rate', msg.velD/100.0)
+                self.write_state('iTOW', msg.iTOW*1.0e-3)
+                # We now have a 'complete' GPS solution, pass it onto a callback,
+                # if we were given one when we were initialised.
+                callback_thread = Thread(target=self.gps_callback)
+                callback_thread.start()
 
             elif msg.name() == "CFG_NAV5":
                 msg.unpack()
@@ -1059,23 +1112,16 @@ if __name__ == "__main__":
     """
     import sys
 
-    gps = UBloxGPS(port=sys.argv[1], dynamic_model=DYNAMIC_MODEL_PORTABLE)
+    def gps_test(state):
+        print(state)
+
+    gps = UBloxGPS(port=sys.argv[1], callback=gps_test, update_rate_ms=500, dynamic_model=DYNAMIC_MODEL_AIRBORNE1G)
 
     iTOW = 0.0 # Last fix time. Only print if this changes.
 
     try:
         while True:
-            time.sleep(0.1)
-            state = gps.read_state()
-            # If lat/long/alt fix time has updated, print position.
-            if state['iTOW'] != iTOW:
-                pos_str = "%.1f \t%.5f \t%.5f \t%.2f \t%s" % (state['iTOW'],
-                    state['latitude'],
-                    state['longitude'],
-                    state['altitude'],
-                    state['numSV'])
-                print(pos_str)
-                iTOW = state['iTOW']
+            time.sleep(1)
 
 
 
