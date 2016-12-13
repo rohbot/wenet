@@ -10,7 +10,7 @@ Added UBloxGPS abstraction layer class for use with Wenet TX system.
 '''
 
 import struct
-from datetime import datetime
+import datetime
 from threading import Thread
 import time, os
 
@@ -911,7 +911,7 @@ class UBloxGPS(object):
         # GPS State
         'gpsFix':       0, 
         'numSV':        0,      # Number of satellites in use.
-        'iTOW':         0,      # Time-of-Week of last fix.        
+        'timestamp':    " ",   
         'dynamic_model': 0      # Current dynamic model in use.
     }
     state_writelock = False
@@ -981,7 +981,7 @@ class UBloxGPS(object):
         self.gps.configure_message_rate(CLASS_NAV, MSG_NAV_SOL, 1)
         self.gps.configure_message_rate(CLASS_NAV, MSG_NAV_VELNED, 1)
         self.gps.configure_message_rate(CLASS_CFG, MSG_CFG_NAV5, 1)
-        self.gps.configure_message_rate(CLASS_NAV, MSG_NAV_TIMEGPS, 5)
+        self.gps.configure_message_rate(CLASS_NAV, MSG_NAV_TIMEGPS, 1)
         self.gps.configure_message_rate(CLASS_NAV, MSG_NAV_CLOCK, 5)
 
     def debug_message(self, message):
@@ -1031,6 +1031,12 @@ class UBloxGPS(object):
 
 
 
+    def weeksecondstoutc(self, gpsweek, gpsseconds, leapseconds):
+        """ Convert time in GPS time (GPS Week, seconds-of-week) to a UTC timestamp """
+        epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
+        elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds+leapseconds))
+        timestamp = epoch + elapsed
+        return timestamp.isoformat()
 
     rx_running = True
     def rx_loop(self):
@@ -1087,7 +1093,10 @@ class UBloxGPS(object):
                 self.write_state('ground_speed', msg.gSpeed*0.036) # Convert to kph
                 self.write_state('heading', msg.heading*1.0e-5)
                 self.write_state('ascent_rate', msg.velD/100.0)
-                self.write_state('iTOW', msg.iTOW*1.0e-3)
+
+            elif msg.name() == "NAV_TIMEGPS":
+                msg.unpack()
+                self.write_state('timestamp', self.weeksecondstoutc(msg.week, msg.iTOW*1.0e-3, msg.leapS))
                 # We now have a 'complete' GPS solution, pass it onto a callback,
                 # if we were given one when we were initialised.
                 callback_thread = Thread(target=self.gps_callback)
@@ -1115,6 +1124,7 @@ if __name__ == "__main__":
     def gps_test(state):
         print(state)
 
+
     gps = UBloxGPS(port=sys.argv[1], callback=gps_test, update_rate_ms=500, dynamic_model=DYNAMIC_MODEL_AIRBORNE1G)
 
     iTOW = 0.0 # Last fix time. Only print if this changes.
@@ -1122,8 +1132,6 @@ if __name__ == "__main__":
     try:
         while True:
             time.sleep(1)
-
-
 
     except KeyboardInterrupt:
         gps.close()
