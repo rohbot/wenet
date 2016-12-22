@@ -909,9 +909,12 @@ class UBloxGPS(object):
         'heading':      0.0,    # Heading in degrees True.
 
         # GPS State
-        'gpsFix':       0, 
+        'gpsFix':       0,      # GPS Fix State. 0 = No Fix, 2 = 2D Fix, 3 = 3D Fix, 5 = Time only. 
         'numSV':        0,      # Number of satellites in use.
-        'timestamp':    " ",   
+        'week':         0,      # GPS Week
+        'iTOW':         0,      # GPS Seconds in week.
+        'leapS':        0,      # GPS Leap Seconds (Difference between GPS time and UTC time)
+        'timestamp':    " ",    # ISO-8601 Compliant Date-code (generate by Python's datetime.isoformat() function)
         'dynamic_model': 0      # Current dynamic model in use.
     }
     state_writelock = False
@@ -1029,8 +1032,6 @@ class UBloxGPS(object):
 
         self.callback(latest_state)
 
-
-
     def weeksecondstoutc(self, gpsweek, gpsseconds, leapseconds):
         """ Convert time in GPS time (GPS Week, seconds-of-week) to a UTC timestamp """
         epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
@@ -1039,6 +1040,7 @@ class UBloxGPS(object):
         return timestamp.isoformat()
 
     rx_running = True
+    rx_counter = 0
     def rx_loop(self):
         """ Main RX Loop 
             In here we process all incoming messages from the uBlox GPS unit,
@@ -1096,15 +1098,28 @@ class UBloxGPS(object):
 
             elif msg.name() == "NAV_TIMEGPS":
                 msg.unpack()
+                self.write_state('week',msg.week)
+                self.write_state('iTOW', msg.iTOW*1.0e-3)
+                self.write_state('leapS', msg.leapS)
                 self.write_state('timestamp', self.weeksecondstoutc(msg.week, msg.iTOW*1.0e-3, msg.leapS))
                 # We now have a 'complete' GPS solution, pass it onto a callback,
                 # if we were given one when we were initialised.
+                self.rx_counter += 1
+
+                # Poll for a CFG_NAV5 message occasionally.
+                if self.rx_counter % 20 == 0:
+                    # A message with only 0x00 in the payload field is a poll.
+                    self.gps.send_message(CLASS_CFG, MSG_CFG_NAV5,'\x00')
+
                 callback_thread = Thread(target=self.gps_callback)
                 callback_thread.start()
 
             elif msg.name() == "CFG_NAV5":
                 msg.unpack()
                 self.write_state('dynamic_model',msg.dynModel)
+                if msg.dynModel != self.dynamic_model:
+                    self.debug_message("Dynamic model changed.")
+                    self.gps.set_preferred_dynamic_model(self.dynamic_model)
 
             else:
                 pass
