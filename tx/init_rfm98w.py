@@ -16,38 +16,14 @@
 #	SPI: Connected to CE0 (like most of my LoRa shields)
 #	RPi TXD: Connected to RFM98W's DIO2 pin.
 #
+import sys
+import argparse
 from SX127x.LoRa import *
 from SX127x.hardware_piloragateway import HardwareInterface
 
-import sys
-
-
-if __name__ == '__main__':
-
-    # Attempt to extract a frequency from the first argument:
-    if len(sys.argv)<2:
-        print("Usage: \tpython init_rfm98w.py <TX Frequency in MHz>")
-        print("Example: \tpython init_rfm98w.py 441.200")
-        print("Alternate usage: python init_rfm98w.py shutdown")
-        sys.exit(1)
-
-    shutdown = False
-    tx_freq = 441.200
-
-    try:
-        tx_freq = float(sys.argv[1])
-    except:
-        if sys.argv[1] == "shutdown":
-            shutdown = True
-        else:
-            print("Unable to parse input.")
-
-    if tx_freq>450.0 or tx_freq<430.00:
-        print("Frequency out of 70cm band, using default.")
-        tx_freq = 441.200
-
+def setup_rfm98w(frequency=441.200, spi_device=0, shutdown=False):
     # Set this to 1 if your RFM98W is on CE1
-    hw = HardwareInterface(0)
+    hw = HardwareInterface(spi_device)
 
     # Start talking to the module...
     lora = LoRa(hw)
@@ -62,15 +38,36 @@ if __name__ == '__main__':
     lora.set_register(0x31,0x00) # Set Continuous Mode
     
     # Set TX Frequency
-    lora.set_freq(tx_freq)
+    lora.set_freq(frequency)
 
     # Set Deviation (~70 kHz). Signals ends up looking a bit wider than the RFM22B version.
     lora.set_register(0x04,0x04)
     lora.set_register(0x05,0x99)
   
-    # Set Transmit power to 50mW
+    # Set Transmit power to 50mW.
+    # NOTE: If you're in another country you'll probably want to modify this value to something legal...
     lora.set_register(0x09,0x8F)
 
     # Go into TX mode.
     lora.set_register(0x01,0x02) # .. via FSTX mode (where the transmit frequency actually gets set)
     lora.set_register(0x01,0x03) # Now we're in TX mode...
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--frequency", default=441.200, type=float, help="Transmit Frequency (MHz). Default = 441.200 MHz.")
+    parser.add_argument("--spidevice", default=0, type=int, help="LoRa SPI Device number. Default = 0.")
+    parser.add_argument("--shutdown",action="store_true", help="Shutdown Transmitter instead of activating it.")
+    args = parser.parse_args()
+
+    tx_freq = args.frequency
+
+    if tx_freq>450.0 or tx_freq<430.00:
+        print("Frequency out of 70cm band, using default.")
+        tx_freq = 441.200
+
+    setup_rfm98w(frequency=tx_freq, spi_device=args.spidevice, shutdown=args.shutdown)
+
+    sys.exit(0)
+
+
