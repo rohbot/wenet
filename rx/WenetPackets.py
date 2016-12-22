@@ -3,6 +3,7 @@
 # Wenet Packet Generators / Decoders
 #
 import struct
+import traceback
 
 WENET_IMAGE_UDP_PORT 		= 7890
 WENET_TELEMETRY_UDP_PORT 	= 7891
@@ -41,6 +42,18 @@ def packet_to_string(packet):
 #
 # SSDV - Packets as per https://ukhas.org.uk/guides:ssdv
 #
+
+_ssdv_callsign_alphabet = '-0123456789---ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+def ssdv_decode_callsign(code):
+	code = str(bytearray(code))
+	code = struct.unpack('>I',code)[0]
+	callsign = ''
+	while code:
+		callsign += _ssdv_callsign_alphabet[code % 40]
+		code /= 40
+    
+	return callsign
+
 def ssdv_packet_info(packet):
 	""" Extract various information out of a SSDV packet, and present as a dict. """
 	packet = list(bytearray(packet))
@@ -54,7 +67,7 @@ def ssdv_packet_info(packet):
 	# We got this far, may as well try and extract the packet info.
 	try:
 		packet_info = {
-			'callsign' : "???", # TODO: Callsign decoding.
+			'callsign' : ssdv_decode_callsign(packet[2:6]), # TODO: Callsign decoding.
 			'packet_type' : "FEC" if (packet[1]==0x66) else "No-FEC",
 			'image_id' : packet[6],
 			'packet_id' : (packet[7]<<8) + packet[8],
@@ -65,6 +78,7 @@ def ssdv_packet_info(packet):
 
 		return packet_info
 	except Exception as e:
+		traceback.print_exc()
 		return {'error': "ERROR: %s" % str(e)}
 
 def ssdv_packet_string(packet):
@@ -73,7 +87,7 @@ def ssdv_packet_string(packet):
 	if packet_info['error'] != 'None':
 		return "SSDV: Unable to decode."
 	else:
-		return "SSDV: %s, Img:%d, Pkt:%d, %dx%d" % (packet_info['packet_type'],packet_info['image_id'],packet_info['packet_id'],packet_info['width'],packet_info['height'])
+		return "SSDV: %s, Callsign: %s, Img:%d, Pkt:%d, %dx%d" % (packet_info['packet_type'],packet_info['callsign'],packet_info['image_id'],packet_info['packet_id'],packet_info['width'],packet_info['height'])
 
 #
 # Text Messages

@@ -58,6 +58,7 @@ def broadcast_telemetry_packet(data):
 
 # State variables
 current_image = -1
+current_callsign = ""
 current_text_message = -1
 current_packet_count = 0
 current_packet_time = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
@@ -106,23 +107,23 @@ while True:
 			print(message['error'])
 			continue
 
-		if packet_info['image_id'] != current_image:
+		if (packet_info['image_id'] != current_image) or (packet_info['callsign'] != current_callsign) :
 			# Attempt to decode current image if we have enough packets.
 			print("New image!")
 			if current_packet_count > 0:
 				# Attempt to decode current image, and write out to a file.
 				temp_f.close()
 				# Run SSDV
-				returncode = os.system("ssdv -d rxtemp.bin ./rx_images/%s_%d.jpg" % (current_packet_time,current_image))
+				returncode = os.system("ssdv -d rxtemp.bin ./rx_images/%s_%s_%d.jpg" % (current_packet_time,current_callsign,current_image))
 				if returncode == 1:
 					print("ERROR: SSDV Decode failed!")
 				else:
 					print("SSDV Decoded OK!")
 					# Make a copy of the raw binary data.
-					os.system("mv rxtemp.bin ./rx_images/%s_%d.bin" % (current_packet_time,current_image))
+					os.system("mv rxtemp.bin ./rx_images/%s_%s_%d.bin" % (current_packet_time,current_callsign,current_image))
 
 					# Update live displays here.
-					trigger_gui_update("./rx_images/%s_%d.jpg" % (current_packet_time,current_image), packet_as_string)
+					trigger_gui_update("./rx_images/%s_%s_%d.jpg" % (current_packet_time,current_callsign,current_image), packet_as_string)
 
 					# Trigger upload to habhub here.
 			else:
@@ -130,6 +131,7 @@ while True:
 
 			# Now set up for the new image.
 			current_image = packet_info['image_id']
+			current_callsign = packet_info['callsign']
 			current_packet_count = 1
 			current_packet_time = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
 			# Open file and write in first packet.
