@@ -5,14 +5,10 @@
 # Frames packets (preamble, unique word, checksum)
 # and transmits them out of a serial port.
 #
-# RPI UART Calibration. Measured on a Rpi A+.
-# YMMV with other RPi models.
 #
-#	 9600 -> 9600.1536
-#	19200 -> 19200.307
-#	38400 -> 38339.148
-#	57600 -> 57693.417
-#  115200 -> 115386.834
+#  NOTE: The RPi UART isn't spot on with its baud rate.
+#  Recent firmware updates have improved the accuracy slightly, but it's still
+#  a bit off. Consequently, 115200 baud is actually around 115177 baud.
 #
 # Mark Jessop <vk5qi@rfhead.net>
 #

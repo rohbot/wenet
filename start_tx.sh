@@ -17,7 +17,7 @@ cd ~/wenet/tx/
 #Uncomment to initialise a RFM22B
 #python init_rfm22b.py $TXFREQ
 # Uncomment for use with a RFM98W
-python init_rfm98w.py $TXFREQ
+python init_rfm98w.py --frequency $TXFREQ
 
 # Start the main TX Script.
 # Note, this assumes there is a uBlox GPS available at /dev/ttyACM0
