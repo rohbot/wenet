@@ -39,26 +39,29 @@ time.sleep(1)
 # Initialise a couple of global variables.
 max_altitude = 0
 
+def handle_gps_data(gps_data):
+	""" Handle GPS data passed to us from the UBloxGPS instance """
+	global max_altitude, tx
+
+	# Immediately transmit a GPS packet.
+	tx.transmit_gps_telemetry(gps_data)
+
+	if gps_data['altitude'] > max_altitude:
+		max_altitude = gps_data['altitude']
+
+
 # Try and start up the GPS rx thread.
 try:
 	gps = ublox.UBloxGPS(port=args.gps, 
 		dynamic_model = ublox.DYNAMIC_MODEL_AIRBORNE1G, 
-		update_rate_ms = 500,
-		debug_ptr = tx.transmit_text_message)
+		update_rate_ms = 1000,
+		debug_ptr = tx.transmit_text_message,
+		callback = handle_gps_data,
+		log_file = 'gps_data.log'
+		)
 except Exception as e:
 	tx.transmit_text_message("ERROR: Could not Open GPS - %s" % str(e), repeats=5)
 	gps = None
-
-
-def poll_gps():
-	global gps, max_altitude
-
-	if gps != None:
-		gps_state = gps.read_state()
-
-		if gps_state['altitude'] > max_altitude:
-			max_altitude = gps_state['altitude']
-
 
 # Define our post-processing callback function, which gets called by WenetPiCam
 # after an image has been captured.
@@ -115,7 +118,6 @@ picam.run(destination_directory="./tx_images/",
 # Main 'loop'.
 try:
 	while True:
-		poll_gps() # Keep polling the GPS so we keep track of our maximum altitude.
 		time.sleep(1)
 except KeyboardInterrupt:
 	print("Closing")

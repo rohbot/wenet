@@ -92,7 +92,7 @@ while True:
 			print("Text Message #%d: \t%s" % (message['id'],message['text']))
 			current_text_message = message['id']
 
-	elif packet_type == WENET_PACKET_TYPES.TELEMETRY:
+	elif packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
 		broadcast_telemetry_packet(data)
 		print("Telemetry Packet: Not Implemented yet.")
 

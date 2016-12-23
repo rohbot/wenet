@@ -12,7 +12,7 @@ Added UBloxGPS abstraction layer class for use with Wenet TX system.
 import struct
 import datetime
 from threading import Thread
-import time, os
+import time, os, json
 
 # protocol constants
 PREAMBLE1 = 0xb5
@@ -917,6 +917,7 @@ class UBloxGPS(object):
         'timestamp':    " ",    # ISO-8601 Compliant Date-code (generate by Python's datetime.isoformat() function)
         'dynamic_model': 0      # Current dynamic model in use.
     }
+    # Lock files for writing and reading to the internal state dictionary.
     state_writelock = False
     state_readlock = False
 
@@ -924,7 +925,8 @@ class UBloxGPS(object):
             callback=None,
             update_rate_ms=500,
             dynamic_model=DYNAMIC_MODEL_AIRBORNE1G,
-            debug_ptr = None):
+            debug_ptr = None,
+            log_file = None):
 
         """ Initialise a UBloxGPS Abstraction layer object.
         
@@ -944,6 +946,9 @@ class UBloxGPS(object):
                     In the wenet payload, we use this to link this object to the PacketTX object to be able to
                     transit debug messages to the ground.
 
+        log_file:   An optional filename in which to log GPS state data. Data will be stored as lines of JSON data.
+                    Data is written whenever the gps_callback function is called.
+
         """
 
         # Copy supplied values.
@@ -954,6 +959,13 @@ class UBloxGPS(object):
         self.update_rate_ms = update_rate_ms
         self.debug_ptr = debug_ptr
         self.callback = callback
+
+
+        # Open log file, if one has been given.
+        if log_file != None:
+            self.log_file = open(log_file,'a')
+        else:
+            self.log_file = None
 
         # Attempt to inialise.
         self.gps = UBlox(self.port, self.baudrate, self.timeout)
@@ -991,8 +1003,7 @@ class UBloxGPS(object):
         """ Write a debug message.
         If debug_ptr was set to a function during init, this will
         pass the message to that function, else it will just print it.
-        This is used mainly to get updates on image capture into the Wenet downlink.
-
+        This is used mainly to get error and other state updates into the Wenet downlink.
         """
         message = "GPS Debug: " + message
         if self.debug_ptr != None:
@@ -1000,6 +1011,7 @@ class UBloxGPS(object):
         else:
             print(message)
 
+    # Thread-safe read/write access into the internal state dictionary
     def write_state(self, value, parameter):
         """ (Hopefully) thread-safe state dictionary write access """
         while self.state_readlock:
@@ -1022,16 +1034,23 @@ class UBloxGPS(object):
 
         return state_copy
 
+    # Function called whenever we have a new GPS fix.
     def gps_callback(self):
         """ Pass the latest GPS state to an external callback function """
         # Grab latest state.
         latest_state = self.read_state()
 
+        # Write into the log file, if we are using one.
+        if self.log_file != None:
+            self.log_file.write(json.dumps(latest_state) + '\n')
+
+        # If we don't have a callback function to use, return immediately.
         if self.callback == None:
             return
+        else:
+            self.callback(latest_state)
 
-        self.callback(latest_state)
-
+    # Utility function to convert GPS time to UTC time.
     def weeksecondstoutc(self, gpsweek, gpsseconds, leapseconds):
         """ Convert time in GPS time (GPS Week, seconds-of-week) to a UTC timestamp """
         epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
@@ -1111,6 +1130,7 @@ class UBloxGPS(object):
                     # A message with only 0x00 in the payload field is a poll.
                     self.gps.send_message(CLASS_CFG, MSG_CFG_NAV5,'\x00')
 
+                # Send data to the callback function.
                 callback_thread = Thread(target=self.gps_callback)
                 callback_thread.start()
 
@@ -1129,6 +1149,7 @@ class UBloxGPS(object):
         self.rx_running = False
         time.sleep(0.5)
         self.gps.close()
+        self.log_file.close()
 
 if __name__ == "__main__":
     """ Basic test script for the above UBloxGPS class. 

@@ -20,6 +20,7 @@ import sys
 import os
 import crcmod
 import struct
+import traceback
 from time import sleep
 from threading import Thread
 import numpy as np
@@ -165,10 +166,8 @@ class PacketTX(object):
 
 	def queue_image_file(self, filename):
 		""" Read in <filename> and transmit it, 256 bytes at a time.
-			Intended for transmitting SSDV packets.
-
+			Intended for transmitting SSDV images.
 		"""
-
 		file_size = os.path.getsize(filename)
 		try:
 			f = open(filename,'rb')
@@ -180,7 +179,6 @@ class PacketTX(object):
 		except:
 			return False
 
-
 	def image_queue_empty(self):
 		return self.ssdv_queue.qsize() == 0
 
@@ -191,7 +189,22 @@ class PacketTX(object):
 	def telemetry_queue_empty(self):
 		return self.telemetry_queue.qsize() == 0
 
+
+#
+#	Various Telemetry Packet Generation functions
+#
+
 	def transmit_text_message(self,message, repeats = 1):
+		""" Generate and Transmit a Text Message Packet
+
+		Keyword Arguments:
+		message: A string, up to 252 characters long, to transmit.
+		repeats: An optional field, defining the number of time to
+				 transmit the packet. Can be used to increase chances
+				 of receiving the packet, at the expense of higher
+				 channel usage.
+
+		"""
 		# Increment text message counter.
 		self.text_message_count = (self.text_message_count+1)%65536
 		# Clip message if required.
@@ -203,6 +216,42 @@ class PacketTX(object):
 		self.queue_telemetry_packet(packet, repeats=repeats)
 		print("TXing Text Message #%d: %s" % (self.text_message_count,message))
 
+	def transmit_gps_telemetry(self, gps_data):
+		""" Generate and Transmit a GPS Telemetry Packet
+
+		Keyword Arguments:
+		gps_data: A dictionary, as produced by the UBloxGPS class. It must have the following fields:
+				  latitude, longitude, altitude, ground_speed, ascent_rate, heading, gpsFix, numSV,
+				  week, iTOW, leapS, dynamic_model.
+
+		The generated packet format is in accordance with the specification in:
+		https://docs.google.com/document/d/12230J1X3r2-IcLVLkeaVmIXqFeo3uheurFakElIaPVo/edit?usp=sharing
+
+		The corresponding decoder for this packet format is within rx/WenetPackets.py, in the function
+		gps_telemetry_decoder
+
+		"""
+
+		try:
+			gps_packet = struct.pack(">BHIBffffffBBB",
+				1,	# Packet ID for the GPS Telemetry Packet.
+				gps_data['week'],
+				int(gps_data['iTOW']*1000),	# Convert the GPS week value to milliseconds, and cast to an int.
+				gps_data['leapS'],
+				gps_data['latitude'],
+				gps_data['longitude'],
+				gps_data['altitude'],
+				gps_data['ground_speed'],
+				gps_data['heading'],
+				gps_data['ascent_rate'],
+				gps_data['numSV'],
+				gps_data['gpsFix'],
+				gps_data['dynamic_model']
+				)
+
+			self.queue_telemetry_packet(gps_packet)
+		except:
+			traceback.print_exc()
 
 
 class BinaryDebug(object):

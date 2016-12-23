@@ -4,6 +4,7 @@
 #
 import struct
 import traceback
+import datetime
 
 WENET_IMAGE_UDP_PORT 		= 7890
 WENET_TELEMETRY_UDP_PORT 	= 7891
@@ -12,12 +13,15 @@ WENET_TELEMETRY_UDP_PORT 	= 7891
 
 class WENET_PACKET_TYPES:
 	TEXT_MESSAGE			= 0x00
-	TELEMETRY 				= 0x01
+	GPS_TELEMETRY 			= 0x01
+	IMU_TELEMETRY			= 0x02
 	# Your packet types here!
+	IMAGE_TELEMETRY			= 0x54
 	SSDV 					= 0x55
 	IDLE					= 0x56
 
-
+class WENET_PACKET_LENGTHS:
+	GPS_TELEMETRY 		= 35
 
 def decode_packet_type(packet):
 	# Convert packet to a list of integers before parsing.
@@ -30,8 +34,12 @@ def packet_to_string(packet):
 
 	if packet_type == WENET_PACKET_TYPES.TEXT_MESSAGE:
 		return text_message_string(packet)
-	elif packet_type == WENET_PACKET_TYPES.TELEMETRY:
-		return telemetry_string(packet)
+	elif packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
+		return gps_telemetry_string(packet)
+	elif packet_type == WENET_PACKET_TYPES.IMU_TELEMETRY:
+		return imu_telemetry_string(packet)
+	elif packet_type == WENET_PACKET_TYPES.IMAGE_TELEMETRY:
+		return image_telemetry_string(packet)
 	elif packet_type == WENET_PACKET_TYPES.SSDV:
 		return ssdv_packet_string(packet)
 	else:
@@ -116,7 +124,136 @@ def text_message_string(packet):
 		return "Text Message #%d: \t%s" % (message['id'],message['text'])
 
 #
-# GPS/IMU Telemetry
+# GPS Telemetry Decoder
 #
-def telemetry_string(packet):
+# Refer Telemetry format documented in:
+# https://docs.google.com/document/d/12230J1X3r2-IcLVLkeaVmIXqFeo3uheurFakElIaPVo/edit?usp=sharing
+#
+# The above 
+
+def gps_weeksecondstoutc(gpsweek, gpsseconds, leapseconds):
+    """ Convert time in GPS time (GPS Week, seconds-of-week) to a UTC timestamp """
+    epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
+    elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds+leapseconds))
+    timestamp = epoch + elapsed
+    return timestamp.isoformat()
+
+def gps_telemetry_decoder(packet):
+	""" Extract GPS telemetry data from a packet, and return it as a python dictionary. """
+	# We need the packet as a string, convert to a string in case we were passed a list of bytes.
+	packet = str(bytearray(packet))
+	gps_data = {}
+
+	# Some basic sanity checking of the packet before we attempt to decode.
+	if len(packet) < WENET_PACKET_LENGTHS.GPS_TELEMETRY:
+		return {'error': 'GPS Telemetry Packet has invalid length.'}
+	elif len(packet) > WENET_PACKET_LENGTHS.GPS_TELEMETRY:
+		# If the packet is too big (which it will be, as it's padded with 0x55's), clip it. 
+		packet = packet[:WENET_PACKET_LENGTHS.GPS_TELEMETRY]
+	else:
+		pass
+
+	# Wrap the next bit in exception handling.
+	try:
+		# Unpack the packet into a list.
+		data = struct.unpack('>BHIBffffffBBB', packet)
+
+		gps_data['week'] 	= data[1]
+		gps_data['iTOW'] 	= data[2]/1000.0 # iTOW provided as milliseconds, convert to seconds.
+		gps_data['leapS'] 	= data[3]
+		gps_data['latitude'] = data[4]
+		gps_data['longitude'] = data[5]
+		gps_data['altitude'] = data[6]
+		gps_data['ground_speed'] = data[7]
+		gps_data['heading'] = data[8]
+		gps_data['ascent_rate'] = data[9]
+		gps_data['numSV'] 	= data[10]
+		gps_data['gpsFix']	= data[11]
+		gps_data['dynamic_model'] = data[12]
+
+		# Perform some post-processing on the data, to make some of the fields easier to read.
+
+		# Produce a human-readable timestamp, in UTC time.
+		gps_data['timestamp'] = gps_weeksecondstoutc(gps_data['week'], gps_data['iTOW'], gps_data['leapS'])
+
+		# Produce a human-readable indication of GPS Fix state.
+		if gps_data['gpsFix'] == 0:
+			gps_data['gpsFix_str'] = 'No Fix'
+		elif gps_data['gpsFix'] == 2:
+			gps_data['gpsFix_str'] = '2D Fix'
+		elif gps_data['gpsFix'] == 3:
+			gps_data['gpsFix_str'] = '3D Fix'
+		elif gps_data['gpsFix'] == 5:
+			gps_data['gpsFix_str'] = 'Time Only'
+		else:
+			gps_data['gpsFix_str'] = 'Unknown (%d)' % gps_data['gpsFix']
+
+		# Produce a human-readable indication of the current dynamic model.
+		if gps_data['dynamic_model'] == 0:
+			gps_data['dynamic_model_str'] = 'Portable'
+		elif gps_data['dynamic_model'] == 1:
+			gps_data['dynamic_model_str'] = 'Not Used'
+		elif gps_data['dynamic_model'] == 2:
+			gps_data['dynamic_model_str'] = 'Stationary'
+		elif gps_data['dynamic_model'] == 3:
+			gps_data['dynamic_model_str'] = 'Pedestrian'
+		elif gps_data['dynamic_model'] == 4:
+			gps_data['dynamic_model_str'] = 'Automotive'
+		elif gps_data['dynamic_model'] == 5:
+			gps_data['dynamic_model_str'] = 'Sea'
+		elif gps_data['dynamic_model'] == 6:
+			gps_data['dynamic_model_str'] = 'Airborne 1G'
+		elif gps_data['dynamic_model'] == 7:
+			gps_data['dynamic_model_str'] = 'Airborne 2G'
+		elif gps_data['dynamic_model'] == 8:
+			gps_data['dynamic_model_str'] = 'Airborne 4G'
+		else:
+			gps_data['dynamic_model_str'] = 'Unknown'
+
+		gps_data['error'] = 'None'
+
+		return gps_data
+
+	except:
+		traceback.print_exc()
+		print(packet)
+		return {'error': 'Could not decode GPS telemetry packet.'}
+
+
+def gps_telemetry_string(packet):
+	gps_data = gps_telemetry_decoder(packet)
+	if gps_data['error'] != 'None':
+		return "GPS: ERROR Could not decode."
+	else:
+		gps_data_string = "GPS: %s Lat/Lon: %.5f,%.5f Alt: %dm, Speed: H %dkph V %.1fm/s, Heading: %d deg, Fix: %s, SVs: %d, Model: %s " % (
+			gps_data['timestamp'],
+			gps_data['latitude'],
+			gps_data['longitude'],
+			int(gps_data['altitude']),
+			int(gps_data['ground_speed']),
+			gps_data['ascent_rate'],
+			int(gps_data['heading']),
+			gps_data['gpsFix_str'],
+			gps_data['numSV'],
+			gps_data['dynamic_model_str']
+			)
+		return gps_data_string
+
+#
+# IMU Telemetry Decoder
+#
+def imu_telemetry_decoder(packet):
+	return "Not Implemented."
+
+def imu_telemetry_string(packet):
+	return "Not Implemented."
+
+
+#
+# Image (Combined GPS/IMU) Telemetry Decoder
+#
+def image_telemetry_decoder(packet):
+	return "Not Implemented."
+
+def image_telemetry_string(packet):
 	return "Not Implemented."

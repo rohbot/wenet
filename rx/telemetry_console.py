@@ -8,6 +8,7 @@
 import json
 import socket
 import datetime
+import traceback
 from WenetPackets import *
 
 def process_udp(udp_packet):
@@ -48,6 +49,7 @@ def udp_rx_thread():
             try:
                 process_udp(m[0])
             except:
+                traceback.print_exc()
                 pass
     
     print("Closing UDP Listener")
