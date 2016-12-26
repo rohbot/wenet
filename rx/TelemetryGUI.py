@@ -1,0 +1,293 @@
+#!/usr/bin/env python2.7
+#
+#   Wenet IMU Data Viewer
+#
+
+from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph as pg
+import pyqtgraph.opengl as gl
+from threading import Thread
+import traceback
+import socket
+import json
+import Queue
+import datetime
+from WenetPackets import *
+import numpy as np
+
+
+# Various GUI Settings
+imu_plot_history_size = 60 # Seconds.
+
+
+app = QtGui.QApplication([])
+
+# Configure PyQtGraph to use black plots on a transparent background.
+pg.setConfigOption('background',(0,0,0,0))
+pg.setConfigOption('foreground', 'k')
+
+#
+# GPS Telemetry Data Frame
+#
+gpsFrame = QtGui.QFrame()
+gpsFrame.setFixedSize(250,250)
+gpsFrame.setFrameStyle(QtGui.QFrame.Box)
+gpsFrame.setLineWidth(2)
+gpsFrameTitle = QtGui.QLabel("<b><u>GPS Data</u></b>")
+gpsTime = QtGui.QLabel("<b>Time:</b>")
+gpsTimeValue = QtGui.QLabel("00:00:00")
+gpsLatitude = QtGui.QLabel("<b>Latitude:</b>")
+gpsLatitudeValue = QtGui.QLabel("-00.00000")
+gpsLongitude = QtGui.QLabel("<b>Longitude:</b>")
+gpsLongitudeValue = QtGui.QLabel("000.00000")
+gpsAltitude = QtGui.QLabel("<b>Altitude:</b>")
+gpsAltitudeValue = QtGui.QLabel("00000m")
+gpsSpeed = QtGui.QLabel("<b>Speed</b>")
+gpsSpeedValue = QtGui.QLabel("H 000kph V 0.0m/s")
+gpsHeading = QtGui.QLabel("<b>Heading:</b>")
+gpsHeadingValue = QtGui.QLabel("-")
+gpsSats = QtGui.QLabel("<b>Satellites:</b>")
+gpsSatsValue = QtGui.QLabel("0")
+gpsFixValid = QtGui.QLabel("<b>Fix Status:</b>")
+gpsFixValidValue = QtGui.QLabel("-")
+
+gpsFrameLayout = QtGui.QGridLayout()
+gpsFrameLayout.addWidget(gpsFrameTitle,0,0,1,2)
+gpsFrameLayout.addWidget(gpsTime,1,0)
+gpsFrameLayout.addWidget(gpsTimeValue,1,1)
+gpsFrameLayout.addWidget(gpsLatitude,2,0)
+gpsFrameLayout.addWidget(gpsLatitudeValue,2,1)
+gpsFrameLayout.addWidget(gpsLongitude,3,0)
+gpsFrameLayout.addWidget(gpsLongitudeValue,3,1)
+gpsFrameLayout.addWidget(gpsAltitude,4,0)
+gpsFrameLayout.addWidget(gpsAltitudeValue,4,1)
+gpsFrameLayout.addWidget(gpsSpeed,5,0)
+gpsFrameLayout.addWidget(gpsSpeedValue,5,1)
+gpsFrameLayout.addWidget(gpsHeading,6,0)
+gpsFrameLayout.addWidget(gpsHeadingValue,6,1)
+gpsFrameLayout.addWidget(gpsSats,7,0)
+gpsFrameLayout.addWidget(gpsSatsValue,7,1)
+gpsFrameLayout.addWidget(gpsFixValid,8,0)
+gpsFrameLayout.addWidget(gpsFixValidValue,8,1)
+
+gpsFrame.setLayout(gpsFrameLayout)
+
+def updateGpsFrame(gps_data):
+    """ Update GPS Data Frame with a WenetPackets GPS Data dictionary """
+    try:
+        gpsTimeValue.setText(gps_data['timestamp'])
+        gpsLatitudeValue.setText("%.5f" % gps_data['latitude'])
+        gpsLongitudeValue.setText("%.5f" % gps_data['longitude'])
+        gpsAltitudeValue.setText("%d m" % int(gps_data['altitude']))
+        gpsSpeedValue.setText("H %d kph V %.1f m/s" % ( int(gps_data['ground_speed']), gps_data['ascent_rate']))
+        gpsHeadingValue.setText("%.1f deg" % gps_data['heading'])
+        gpsSatsValue.setText("%d" % gps_data['numSV'])
+        gpsFixValidValue.setText(gps_data['gpsFix_str'])
+    except:
+        traceback.print_exc()
+        pass
+
+#
+# IMU Telemetry Data Frame
+#
+imuFrame = QtGui.QFrame()
+imuFrame.setFixedSize(200,250)
+imuFrame.setFrameStyle(QtGui.QFrame.Box)
+imuFrame.setLineWidth(2)
+
+imuFrameTitle = QtGui.QLabel("<b><u>IMU Data</u></b>")
+imuTime = QtGui.QLabel("<b>Time:</b>")
+imuTimeValue = QtGui.QLabel("00:00:00")
+imuTemp = QtGui.QLabel("<b>Temp:</b>")
+imuTempValue = QtGui.QLabel("0 deg C")
+imuCalStatus = QtGui.QLabel("<b>Calibration Status</b>")
+imuCalStatus_System = QtGui.QLabel("<u>System</u>")
+imuCalStatus_System_OK = QtGui.QLabel("BAD")
+imuCalStatus_Gyro = QtGui.QLabel("<u>Gyro</u>")
+imuCalStatus_Gyro_OK = QtGui.QLabel("BAD")
+imuCalStatus_Accel = QtGui.QLabel("<u>Accel</u>")
+imuCalStatus_Accel_OK =QtGui.QLabel("BAD")
+imuCalStatus_Magnet = QtGui.QLabel("<u>Mag</u>")
+imuCalStatus_Magnet_OK = QtGui.QLabel("BAD")
+imuEulerLabel = QtGui.QLabel("<b><u>Euler Angles</u></b>")
+imuEulerHeadingLabel = QtGui.QLabel("<b>Heading</b>")
+imuEulerHeadingValue = QtGui.QLabel("0 deg")
+imuEulerRollLabel = QtGui.QLabel("<b>Roll</b>")
+imuEulerRollValue = QtGui.QLabel("0 deg")
+imuEulerPitchLabel = QtGui.QLabel("<b>Pitch</b>")
+imuEulerPitchValue = QtGui.QLabel("0 deg")
+
+imuFrameLayout = QtGui.QGridLayout()
+imuFrameLayout.addWidget(imuFrameTitle,0,0,1,4)
+imuFrameLayout.addWidget(imuTime,1,0,1,1)
+imuFrameLayout.addWidget(imuTimeValue,1,2,1,3)
+imuFrameLayout.addWidget(imuTemp,2,0,1,1)
+imuFrameLayout.addWidget(imuTempValue,2,2,1,3)
+imuFrameLayout.addWidget(imuCalStatus,3,0,1,4)
+imuFrameLayout.addWidget(imuCalStatus_System,4,0,1,1)
+imuFrameLayout.addWidget(imuCalStatus_Gyro,4,1,1,1)
+imuFrameLayout.addWidget(imuCalStatus_Accel,4,2,1,1)
+imuFrameLayout.addWidget(imuCalStatus_Magnet,4,3,1,1)
+imuFrameLayout.addWidget(imuCalStatus_System_OK,5,0,1,1)
+imuFrameLayout.addWidget(imuCalStatus_Gyro_OK,5,1,1,1)
+imuFrameLayout.addWidget(imuCalStatus_Accel_OK,5,2,1,1)
+imuFrameLayout.addWidget(imuCalStatus_Magnet_OK,5,3,1,1)
+imuFrameLayout.addWidget(imuEulerLabel,6,0,1,4)
+imuFrameLayout.addWidget(imuEulerHeadingLabel,7,0,1,2)
+imuFrameLayout.addWidget(imuEulerHeadingValue,7,2,1,2)
+imuFrameLayout.addWidget(imuEulerRollLabel,8,0,1,2)
+imuFrameLayout.addWidget(imuEulerRollValue,8,2,1,2)
+imuFrameLayout.addWidget(imuEulerPitchLabel,9,0,1,2)
+imuFrameLayout.addWidget(imuEulerPitchValue,9,2,1,2)
+
+imuFrame.setLayout(imuFrameLayout)
+
+#
+# IMU Plots.
+#
+
+heading_values = np.array([0])
+roll_values = np.array([0])
+pitch_values = np.array([0])
+imu_times = np.array([0])
+
+imuPlot = pg.GraphicsLayoutWidget()
+imuPlot_Heading = imuPlot.addPlot(title='Heading')
+imuPlot_Roll = imuPlot.addPlot(title='Roll')
+imuPlot_Pitch = imuPlot.addPlot(title='Pitch')
+imuPlotLayout = imuPlot.ci.layout
+imuPlotLayout.rowMaximumHeight(220)
+
+# Configure Plots
+imuPlot_Heading.setXRange(-1*imu_plot_history_size,0)
+imuPlot_Heading.setYRange(-180,180)
+imuPlot_Roll.setXRange(-1*imu_plot_history_size,0)
+imuPlot_Roll.setYRange(-180,180)
+imuPlot_Pitch.setXRange(-1*imu_plot_history_size,0)
+imuPlot_Pitch.setYRange(-180,180)
+
+# Get curve objects so we can update them with new data.
+heading_curve = imuPlot_Heading.plot(x=imu_times, y=heading_values)
+roll_curve = imuPlot_Roll.plot(x=imu_times, y=roll_values)
+pitch_curve = imuPlot_Pitch.plot(x=imu_times, y=pitch_values)
+
+def updateIMUFrame(imu_data):
+    """ Update IMU Frame and Plots with new IMU data """
+    # To be Implemented
+    pass
+
+
+# Telemetry Log
+packetSnifferFrame = QtGui.QFrame()
+packetSnifferFrame.setFixedSize(1200,150)
+packetSnifferFrame.setFrameStyle(QtGui.QFrame.Box)
+packetSnifferTitle = QtGui.QLabel("<b><u>Telemetry Log</u></b>")
+console = QtGui.QPlainTextEdit()
+console.setReadOnly(True)
+packetSnifferLayout = QtGui.QGridLayout()
+packetSnifferLayout.addWidget(packetSnifferTitle)
+packetSnifferLayout.addWidget(console)
+packetSnifferFrame.setLayout(packetSnifferLayout)
+
+
+# Main Window
+main_widget = QtGui.QWidget()
+layout = QtGui.QGridLayout()
+main_widget.setLayout(layout)
+
+layout.addWidget(gpsFrame,0,0)
+layout.addWidget(imuFrame,0,1)
+layout.addWidget(imuPlot,0,2)
+layout.addWidget(packetSnifferFrame,1,0,1,4)
+
+mainwin = QtGui.QMainWindow()
+mainwin.setWindowTitle("Wenet GPS/IMU Telemetry Console")
+mainwin.setCentralWidget(main_widget)
+mainwin.resize(1200,400)
+mainwin.show()
+
+
+#
+# UDP Packet Handling Functions.
+#
+rxqueue = Queue.Queue(32)
+
+def process_udp(udp_packet):
+    """ Process received UDP packets. """
+    # Grab timestamp.
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
+
+    # Parse JSON, and extract packet.
+    packet_dict = json.loads(udp_packet)
+    packet = packet_dict['packet']
+
+    # Convert to string, and print to terminal with timestamp.
+    console.appendPlainText("%s \t%s" % (timestamp,packet_to_string(packet)))
+
+    # Decode GPS and IMU packets, and pass onto their respective GUI update functions.
+    packet_type = decode_packet_type(packet)
+
+    if packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
+        gps_data = gps_telemetry_decoder(packet)
+        updateGpsFrame(gps_data)
+    elif packet_type == WENET_PACKET_TYPES.IMU_TELEMETRY:
+        imu_data = imu_telemetry_decoder(packet)
+        updateIMUFrame(imu_data)
+    else:
+        pass
+
+
+udp_listener_running = False
+def udp_rx_thread():
+    """ Listen on a port for UDP broadcast packets, and pass them onto process_udp()"""
+    global udp_listener_running
+    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    s.settimeout(1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    except:
+        pass
+    s.bind(('',WENET_TELEMETRY_UDP_PORT))
+    print("Started UDP Listener Thread.")
+    udp_listener_running = True
+    while udp_listener_running:
+        try:
+            m = s.recvfrom(2048)
+        except socket.timeout:
+            m = None
+        
+        if m != None:
+            try:
+                rxqueue.put_nowait(m[0])
+            except:
+                traceback.print_exc()
+                pass
+    
+    print("Closing UDP Listener")
+    s.close()
+
+t = Thread(target=udp_rx_thread)
+t.start()
+
+def read_queue():
+    try:
+        if rxqueue.qsize()>0:
+            packet = rxqueue.get_nowait()
+            process_udp(packet)
+    except:
+        traceback.print_exc()
+        pass
+
+# Start a timer to attempt to read a packet from the queue every 100ms.
+timer = QtCore.QTimer()
+timer.timeout.connect(read_queue)
+timer.start(100)
+
+
+## Start Qt event loop unless running in interactive mode.
+if __name__ == '__main__':
+    import sys
+    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+        QtGui.QApplication.instance().exec_()
+        udp_listener_running = False
