@@ -79,22 +79,20 @@ while True:
 	if packet_type == WENET_PACKET_TYPES.IDLE:
 		continue
 	elif packet_type == WENET_PACKET_TYPES.TEXT_MESSAGE:
-		message = decode_text_message(data)
 		broadcast_telemetry_packet(data)
-
-		# Check for parsing errors and skip if we find any.
-		if message['error'] != 'None':
-			print(message['error'])
-			continue
-
-		# Print if we have a new message.
-		if message['id'] != current_text_message:
-			print("Text Message #%d: \t%s" % (message['id'],message['text']))
-			current_text_message = message['id']
+		print(packet_to_string(data))
 
 	elif packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
 		broadcast_telemetry_packet(data)
-		print("Telemetry Packet: Not Implemented yet.")
+		print(packet_to_string(data))
+
+	elif packet_type == WENET_PACKET_TYPES.IMU_TELEMETRY:
+		broadcast_telemetry_packet(data)
+		print(packet_to_string(data))
+
+	elif packet_type == WENET_PACKET_TYPES.IMAGE_TELEMETRY:
+		broadcast_telemetry_packet(data)
+		print(packet_to_string(data))
 
 	elif packet_type == WENET_PACKET_TYPES.SSDV:
 
@@ -150,4 +148,5 @@ while True:
 					returncode = os.system("ssdv -d rxtemp.bin rxtemp.jpg")
 					if returncode == 0:
 						trigger_gui_update("rxtemp.jpg", packet_as_string)
-
+	else:
+		print("Unknown Packet Format.")

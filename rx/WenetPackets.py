@@ -246,7 +246,7 @@ def imu_telemetry_decoder(packet):
 	return "Not Implemented."
 
 def imu_telemetry_string(packet):
-	return "Not Implemented."
+	return "IMU: Not Implemented Yet."
 
 
 #
@@ -256,4 +256,4 @@ def image_telemetry_decoder(packet):
 	return "Not Implemented."
 
 def image_telemetry_string(packet):
-	return "Not Implemented."
+	return "Image Telemetry: Not Implemented Yet."
