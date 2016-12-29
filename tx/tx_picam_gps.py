@@ -43,10 +43,11 @@ def handle_gps_data(gps_data):
 	""" Handle GPS data passed to us from the UBloxGPS instance """
 	global max_altitude, tx
 
-	# Immediately transmit a GPS packet.
+	# Immediately generate and transmit a GPS packet.
 	tx.transmit_gps_telemetry(gps_data)
 
-	if gps_data['altitude'] > max_altitude:
+	# If we have GPS fix, update the max altitude field.
+	if (gps_data['altitude'] > max_altitude) and (gps_data['gpsFix'] == 3):
 		max_altitude = gps_data['altitude']
 
 
@@ -107,7 +108,7 @@ def post_process_image(filename):
 
 
 # Finally, initialise the PiCam capture object.
-picam = WenetPiCam.WenetPiCam(resolution=(1920,1088), callsign=callsign, debug_ptr=tx.transmit_text_message, vertical_flip=True, horizontal_flip=True)
+picam = WenetPiCam.WenetPiCam(resolution=(1920,1088), callsign=callsign, debug_ptr=tx.transmit_text_message, vertical_flip=False, horizontal_flip=False)
 # .. and start it capturing continuously.
 picam.run(destination_directory="./tx_images/", 
 	tx = tx,
@@ -118,7 +119,11 @@ picam.run(destination_directory="./tx_images/",
 # Main 'loop'.
 try:
 	while True:
+		# Do nothing!
+		# Sleep to avoid chewing up CPU cycles in this loop.
 		time.sleep(1)
+# Catch CTRL-C, and exit cleanly.
+# Only really used during debugging.
 except KeyboardInterrupt:
 	print("Closing")
 	picam.stop()

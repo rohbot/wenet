@@ -24,7 +24,8 @@ class WenetPiCam(object):
 	"""
 
 	def __init__(self,resolution=(1488,1120), 
-				num_images=5, 
+				num_images=5,
+				image_delay=0.5, 
 				vertical_flip = False, 
 				horizontal_flip = False,
 				temp_filename_prefix = 'picam_temp',
@@ -40,6 +41,7 @@ class WenetPiCam(object):
 
 			num_images: Number of images to capture in sequence when the 'capture' function is called.
 						The 'best' (largest filesize) image is selected and saved.
+			image_delay: Delay time (seconds) between each captured image.
 
 			vertical_flip: Flip captured images vertically.
 			horizontal_flip: Flip captured images horizontally.
@@ -56,6 +58,7 @@ class WenetPiCam(object):
 		self.debug_ptr = debug_ptr
 		self.temp_filename_prefix = temp_filename_prefix
 		self.num_images = num_images
+		self.image_delay = image_delay
 		self.callsign = callsign
 
 		# Attempt to start picam.
@@ -102,6 +105,8 @@ class WenetPiCam(object):
 			# Wrap this in error handling in case we lose the camera for some reason.
 			try:
 				self.cam.capture("%s_%d.jpg" % (self.temp_filename_prefix,i))
+				if self.image_delay > 0:
+					sleep(self.image_delay)
 			except Exception as e: # TODO: Narrow this down...
 				self.debug_message("ERROR: %s" % str(e))
 				# Immediately return false. Not much point continuing to try and capture images.
