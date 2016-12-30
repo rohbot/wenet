@@ -23,7 +23,9 @@ class WenetPiCam(object):
 
 	"""
 
-	def __init__(self,resolution=(1488,1120), 
+	def __init__(self,
+				src_resolution=(3280,2464),
+				tx_resolution=(1488,1120), 
 				num_images=5,
 				image_delay=0.5, 
 				vertical_flip = False, 
@@ -36,8 +38,10 @@ class WenetPiCam(object):
 			used to capture images from a PiCam using 'optimal' capture techniques.
 
 			Keyword Arguments:
-			resolution: Tuple (x,y) containing desired image capture resolution.
+			src_resolution: Raw image capture resolution. This is the resolution of the file saved to disk.
+			tx_resolution: Tuple (x,y) containing desired image *transmit* resolution.
 						NOTE: both x and y need to be multiples of 16 to be used with SSDV.
+						NOTE: This will resize with NO REGARD FOR ASPECT RATIO - it's up to you to get that right.
 
 			num_images: Number of images to capture in sequence when the 'capture' function is called.
 						The 'best' (largest filesize) image is selected and saved.
@@ -60,12 +64,13 @@ class WenetPiCam(object):
 		self.num_images = num_images
 		self.image_delay = image_delay
 		self.callsign = callsign
+		self.tx_resolution = tx_resolution
 
 		# Attempt to start picam.
 		self.cam = PiCamera()
 
 		# Configure camera.
-		self.cam.resolution = resolution
+		self.cam.resolution = src_resolution
 		self.cam.hflip = horizontal_flip
 		self.cam.vflip = vertical_flip
 		self.cam.exposure_mode = 'auto'
@@ -132,22 +137,30 @@ class WenetPiCam(object):
 
 	def ssdvify(self, filename="output.jpg", image_id=0, quality=6):
 		""" Convert a supplied JPEG image to SSDV.
+		Returns the filename of the converted SSDV image.
 
 		Keyword Arguments:
 		filename:	Source JPEG filename.
-					Output SSDV image will be saved to this filename, with .jpg replaced by .ssdv
-		callsign:	Payload callsign. Max 6 Alphanumeric characters.
+					Output SSDV image will be saved to to a temporary file (webcam_temp.jpg) which should be
+					transmitted immediately.
 		image_id:	Image ID number. Must be incremented between images.
 		quality:	JPEG quality level: 4 - 7, where 7 is 'lossless' (not recommended).
 					6 provides good quality at decent file-sizes.
 
 		"""
 
+		# Resize image to the desired resolution.
+		self.debug_message("Resizing image.")
+		return_code = os.system("convert %s -resize %dx%d\! picam_temp.jpg" % (filename, self.tx_resolution[0], self.tx_resolution[1]))
+		if return_code != 0:
+			self.debug_message("Resize operation failed!")
+			return "FAIL"
+
 		# Get non-extension part of filename.
 		file_basename = filename[:-4]
 
 		# Construct SSDV command-line.
-		ssdv_command = "ssdv -e -n -q %d -c %s -i %d %s %s.ssdv" % (quality, self.callsign, image_id, filename, file_basename)
+		ssdv_command = "ssdv -e -n -q %d -c %s -i %d picam_temp.jpg picam_temp.ssdv" % (quality, self.callsign, image_id)
 		print(ssdv_command)
 		# Update debug message.
 		self.debug_message("Converting image to SSDV.")
@@ -159,7 +172,7 @@ class WenetPiCam(object):
 			self.debug_message("ERROR: Could not perform SSDV Conversion.")
 			return "FAIL"
 		else:
-			return file_basename + ".ssdv"
+			return "picam_temp.ssdv"
 
 	auto_capture_running = False
 	def auto_capture(self, destination_directory, tx, post_process_ptr=None, delay = 0, start_id = 0):

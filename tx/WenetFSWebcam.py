@@ -20,8 +20,7 @@ class WenetFSWebcam(object):
 	"""
 
 	def __init__(self,
-				src_resolution=(2304,1536),
-				src_palette='YUYV',
+				fswebcam_config='fswebcam.conf',
 				tx_resolution=(1680,1120),
 				num_images=1, 
 				temp_filename_prefix = 'webcam_temp',
@@ -32,14 +31,12 @@ class WenetFSWebcam(object):
 			used to capture images using GPhoto.
 
 			Keyword Arguments:
-			src_resolution: Webcam source resolution. This is the image resolution that is saved to disk.
-			src_palette: Webcam color palette to use. Different color palettes allow different image resolutions.
-					     Run 'uvcdynctrl -f' to find out what your webcam supports.
+			fswebcam_config: A configuration file containing the desired webcam capture parameters.
+							 Refer to the fswebcam man page for more information.
 
 			tx_resolution: Tuple (x,y) containing desired image *transmit* resolution.
 						NOTE: both x and y need to be multiples of 16 to be used with SSDV.
 						NOTE: This will resize with NO REGARD FOR ASPECT RATIO - it's up to you to get that right.
-
 
 			num_images: Number of images to capture in sequence when the 'capture' function is called.
 						The 'best' (largest filesize) image is selected and saved.
@@ -57,8 +54,7 @@ class WenetFSWebcam(object):
 		self.num_images = num_images
 		self.callsign = callsign
 		self.tx_resolution = tx_resolution
-		self.src_resolution = src_resolution
-		self.src_palette = src_palette
+		self.fswebcam_config = fswebcam_config
 
 		# Attempt to set camera time.
 		# This also tells us if we can communicate with the camera or not.
@@ -99,9 +95,10 @@ class WenetFSWebcam(object):
 			try:
 				temp_filename = "%s_%d.jpg" % (self.temp_filename_prefix,i)
 
-				return_code = os.system("fswebcam -p %s -r %dx%d %s" % (self.src_palette, self.src_resolution[0], self.src_resolution[1], temp_filename))
-				if return_code != 0:
-					self.debug_message("ERROR: fswebcam call failed.")
+				proc = subprocess.Popen(['fswebcam','-c', self.fswebcam_config, temp_filename],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+				proc.wait()
+				if "No such file or directory" in proc.stderr.read():
+					self.debug_message("ERROR: No Camera Connected!")
 					return False
 
 			except Exception as e: # TODO: Narrow this down...
@@ -129,10 +126,12 @@ class WenetFSWebcam(object):
 
 	def ssdvify(self, filename="output.jpg", image_id=0, quality=6):
 		""" Convert a supplied JPEG image to SSDV.
+		Returns the filename of the converted SSDV image.
 
 		Keyword Arguments:
 		filename:	Source JPEG filename.
-					Output SSDV image will be saved to this filename, with .jpg replaced by .ssdv
+					Output SSDV image will be saved to to a temporary file (webcam_temp.jpg) which should be
+					transmitted immediately.
 		image_id:	Image ID number. Must be incremented between images.
 		quality:	JPEG quality level: 4 - 7, where 7 is 'lossless' (not recommended).
 					6 provides good quality at decent file-sizes.
@@ -197,10 +196,11 @@ class WenetFSWebcam(object):
 			# Attempt to capture.
 			capture_successful = self.capture(capture_filename)
 
-			# If capture was unsuccessful, exit out of this thead, as clearly
-			# the camera isn't working.
+			# If capture was unsuccessful, wait a few seconds and try and continue,
+			# in case the camera is re-connected.
 			if not capture_successful:
-				return
+				sleep(10)
+				continue
 
 			# Otherwise, proceed to post-processing step.
 			if post_process_ptr != None:
@@ -213,9 +213,10 @@ class WenetFSWebcam(object):
 			# SSDV'ify the image.
 			ssdv_filename = self.ssdvify(capture_filename, image_id=image_id)
 
-			# Check the SSDV Conversion has completed properly. If not, break.
+			# Check the SSDV Conversion has completed properly. If not, wait a second then continue.
 			if ssdv_filename == "FAIL":
-				return
+				sleep(1)
+				continue
 
 
 			# Otherwise, read in the file and push into the TX buffer.
@@ -229,7 +230,7 @@ class WenetFSWebcam(object):
 					return
 
 			# Inform ground station we are about to send an image.
-			self.debug_message("Transmitting %d GPhoto SSDV Packets." % (file_size/256))
+			self.debug_message("Transmitting %d Webcam SSDV Packets." % (file_size/256))
 
 			# Push SSDV file into transmit queue.
 			tx.queue_image_file(ssdv_filename)

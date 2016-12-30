@@ -39,7 +39,8 @@ class WenetGPhoto(object):
 			used to capture images using GPhoto.
 
 			Keyword Arguments:
-			resolution: Tuple (x,y) containing desired image capture resolution.
+			resolution: Tuple (x,y) containing desired image *transmit* resolution.
+						NOTE: The raw image from the camera will be saved with whatever resolution is set on the camera.
 						NOTE: both x and y need to be multiples of 16 to be used with SSDV.
 
 
@@ -58,6 +59,7 @@ class WenetGPhoto(object):
 		self.temp_filename_prefix = temp_filename_prefix
 		self.num_images = num_images
 		self.callsign = callsign
+		self.resolution = resolution
 
 		# Attempt to set camera time.
 		# This also tells us if we can communicate with the camera or not.
@@ -140,11 +142,18 @@ class WenetGPhoto(object):
 
 		"""
 
+		# Resize image to the desired resolution.
+		self.debug_message("Resizing image.")
+		return_code = os.system("convert %s -resize %dx%d\! gphoto_temp.jpg" % (filename, resolution[0], resolution[1]))
+		if return_code != 0:
+			self.debug_message("Resize operation failed!")
+			return "FAIL"
+
 		# Get non-extension part of filename.
 		file_basename = filename[:-4]
 
 		# Construct SSDV command-line.
-		ssdv_command = "ssdv -e -n -q %d -c %s -i %d %s %s.ssdv" % (quality, self.callsign, image_id, filename, file_basename)
+		ssdv_command = "ssdv -e -n -q %d -c %s -i %d gphoto_temp.jpg gphoto_temp.ssdv" % (quality, self.callsign, image_id)
 		print(ssdv_command)
 		# Update debug message.
 		self.debug_message("Converting image to SSDV.")
@@ -156,7 +165,7 @@ class WenetGPhoto(object):
 			self.debug_message("ERROR: Could not perform SSDV Conversion.")
 			return "FAIL"
 		else:
-			return file_basename + ".ssdv"
+			return "gphoto_temp.ssdv"
 
 	auto_capture_running = False
 	def auto_capture(self, destination_directory, tx, post_process_ptr=None, delay = 0, start_id = 0):
