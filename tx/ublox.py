@@ -1113,7 +1113,7 @@ class UBloxGPS(object):
                 msg.unpack()
                 self.write_state('ground_speed', msg.gSpeed*0.036) # Convert to kph
                 self.write_state('heading', msg.heading*1.0e-5)
-                self.write_state('ascent_rate', msg.velD/100.0)
+                self.write_state('ascent_rate', -1.0*msg.velD/100.0)
 
             elif msg.name() == "NAV_TIMEGPS":
                 msg.unpack()
