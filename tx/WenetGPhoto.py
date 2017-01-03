@@ -69,7 +69,14 @@ class WenetGPhoto(object):
 			print("Could not communicate with camera!")
 
 		# Now open a 'piggyphoto' (py-gphoto) instance for all further communication.
-		self.cam = piggyphoto.camera()
+		self.camera_connected = False
+		while not self.camera_connected:
+			try:
+				self.cam = piggyphoto.camera()
+				self.camera_connected = True
+			except Exception as e:
+				self.debug_message("ERROR: %s - Is the camera connected?" % str(e))
+				sleep(5)
 
 
 	def debug_message(self, message):

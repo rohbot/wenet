@@ -6,10 +6,12 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 ## Flight History
 * v0.1 - First test flight on Horus 37, no FEC. Read more about that here: http://rfhead.net/?p=637
 * v0.2 - Second test flight on Horus 39, with LDPC FEC enabled. Read more here: http://www.rowetel.com/?p=5344
-* v0.3 - Third test flight - sometime in Jan 2017.
+* v0.3 - Third test flight - 2nd Jan 2017. 
+* v0.4 - SHSSP Launches - Late Jan 2017. TBD.
 
-![Image downlinked via Wenet on Horus 38](http://rfhead.net/temp/wenet_fec_small.jpeg)
-The above image was captured on Horus 38, and downlinked via Wenet.
+![Image downlinked via Wenet on Horus 40](http://rfhead.net/temp/horus_40_pic.jpg)
+
+The above image was captured on Horus 40, and downlinked via Wenet. The original downlinked resolution was 1920x1088, and has since been re-sized.
 
 ## Ubuntu 16.04 RX
 * There is now a guide on how to set up a RX station using Ubuntu within the INSTALL_ubuntu file
