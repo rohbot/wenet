@@ -24,6 +24,7 @@ class WenetPiCam(object):
 	"""
 
 	def __init__(self,
+				callsign = "N0CALL"
 				src_resolution=(3280,2464),
 				tx_resolution=(1488,1120), 
 				num_images=1,
@@ -31,13 +32,14 @@ class WenetPiCam(object):
 				vertical_flip = False, 
 				horizontal_flip = False,
 				temp_filename_prefix = 'picam_temp',
-				debug_ptr = None,
-				callsign = "N0CALL"):
+				debug_ptr = None
+				):
 
 		""" Instantiate a WenetPiCam Object
 			used to capture images from a PiCam using 'optimal' capture techniques.
 
 			Keyword Arguments:
+			callsign: The callsign to be used when converting images to SSDV. Must be <=6 characters in length.
 			src_resolution: Raw image capture resolution. This is the resolution of the file saved to disk.
 			tx_resolution: Tuple (x,y) containing desired image *transmit* resolution.
 						NOTE: both x and y need to be multiples of 16 to be used with SSDV.
@@ -74,7 +76,7 @@ class WenetPiCam(object):
 		self.cam.hflip = horizontal_flip
 		self.cam.vflip = vertical_flip
 		self.cam.exposure_mode = 'auto'
-		self.cam.awb_mode = 'auto'
+		self.cam.awb_mode = 'sunlight' # Fixed white balance compensation. 
 		self.cam.meter_mode = 'matrix'
 
 		# Start the 'preview' mode, effectively opening the 'shutter'.
