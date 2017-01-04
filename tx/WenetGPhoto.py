@@ -149,6 +149,9 @@ class WenetGPhoto(object):
 
 		"""
 
+		# Wrap image ID field if it's >255.
+		image_id = image_id % 256
+
 		# Resize image to the desired resolution.
 		self.debug_message("Resizing image.")
 		return_code = os.system("convert %s -resize %dx%d\! gphoto_temp.jpg" % (filename, resolution[0], resolution[1]))

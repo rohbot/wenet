@@ -149,6 +149,9 @@ class WenetPiCam(object):
 
 		"""
 
+		# Wrap image ID field if it's >255.
+		image_id = image_id % 256
+
 		# Resize image to the desired resolution.
 		self.debug_message("Resizing image.")
 		return_code = os.system("convert %s -resize %dx%d\! picam_temp.jpg" % (filename, self.tx_resolution[0], self.tx_resolution[1]))
