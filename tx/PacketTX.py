@@ -217,7 +217,7 @@ class PacketTX(object):
 		print("TXing Text Message #%d: %s" % (self.text_message_count,message))
 
 	def transmit_gps_telemetry(self, gps_data):
-		""" Generate and Transmit a GPS Telemetry Packet
+		""" Generate and Transmit a GPS Telemetry Packet.
 
 		Keyword Arguments:
 		gps_data: A dictionary, as produced by the UBloxGPS class. It must have the following fields:
@@ -252,6 +252,57 @@ class PacketTX(object):
 			self.queue_telemetry_packet(gps_packet)
 		except:
 			traceback.print_exc()
+
+	def transmit_orientation_telemetry(self, week, iTOW, leapS, orientation_data):
+		""" Generate and Transmit an Payload Orientation telemetry packet.
+
+		Keyword Arguments:
+		week: GPS week number
+		iTOW: GPS time-of-week (Seconds)
+		leapS: GPS leap-seconds value (necessary to convert GPS time to UTC time)
+
+		orientation_data: A dictionary, as produced by the BNO055 Class. It must have the following fields:
+
+
+		The generated packet format is in accordance with the specification in 
+		https://docs.google.com/document/d/12230J1X3r2-IcLVLkeaVmIXqFeo3uheurFakElIaPVo/edit?usp=sharing
+
+		The corresponding decoder for this packet format is within rx/WenetPackets.py, in the function
+		orientation_telemetry_decoder
+
+		"""
+
+		# SHSSP Code goes here...
+
+		return
+
+	def transmit_image_telemetry(self, gps_data, orientation_data, image_id):
+		""" Generate and Transmit an Image telemetry packet.
+
+		Keyword Arguments:
+		gps_data: A dictionary, as produced by the UBloxGPS class. It must have the following fields:
+				  latitude, longitude, altitude, ground_speed, ascent_rate, heading, gpsFix, numSV,
+				  week, iTOW, leapS, dynamic_model.
+
+		orientation_data: A dictionary, as produced by the BNO055 Class. It must have the following fields:
+
+
+		image_id: The ID of the image related to the above position and orientation data.
+
+		The generated packet format is in accordance with the specification in 
+		https://docs.google.com/document/d/12230J1X3r2-IcLVLkeaVmIXqFeo3uheurFakElIaPVo/edit?usp=sharing
+
+		The corresponding decoder for this packet format is within rx/WenetPackets.py, in the function
+		image_telemetry_decoder
+
+		"""
+
+		# SHSSP Code goes here...
+
+		return
+
+
+
 
 
 class BinaryDebug(object):

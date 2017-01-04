@@ -14,8 +14,7 @@ WENET_TELEMETRY_UDP_PORT 	= 7891
 class WENET_PACKET_TYPES:
 	TEXT_MESSAGE			= 0x00
 	GPS_TELEMETRY 			= 0x01
-	IMU_TELEMETRY			= 0x02
-	# Your packet types here!
+	ORIENTATION_TELEMETRY	= 0x02
 	IMAGE_TELEMETRY			= 0x54
 	SSDV 					= 0x55
 	IDLE					= 0x56
@@ -36,8 +35,8 @@ def packet_to_string(packet):
 		return text_message_string(packet)
 	elif packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
 		return gps_telemetry_string(packet)
-	elif packet_type == WENET_PACKET_TYPES.IMU_TELEMETRY:
-		return imu_telemetry_string(packet)
+	elif packet_type == WENET_PACKET_TYPES.ORIENTATION_TELEMETRY:
+		return orientation_telemetry_string(packet)
 	elif packet_type == WENET_PACKET_TYPES.IMAGE_TELEMETRY:
 		return image_telemetry_string(packet)
 	elif packet_type == WENET_PACKET_TYPES.SSDV:
@@ -139,8 +138,23 @@ def gps_weeksecondstoutc(gpsweek, gpsseconds, leapseconds):
     return timestamp.isoformat()
 
 def gps_telemetry_decoder(packet):
-	""" Extract GPS telemetry data from a packet, and return it as a python dictionary. """
-	# We need the packet as a string, convert to a string in case we were passed a list of bytes.
+	""" Extract GPS telemetry data from a packet, and return it as a dictionary. 
+
+	Keyword Arguments:
+	packet:	A GPS telemetry packet, as per https://docs.google.com/document/d/12230J1X3r2-IcLVLkeaVmIXqFeo3uheurFakElIaPVo/edit?usp=sharing
+			This can be provided as either a string, or a list of integers, which will be converted
+			to a string prior to decoding.
+
+	Return value:
+			A dictionary containing the decoded packet data. 
+			If the decode failed for whatever reason, a dictionary will still be returned, but will 
+			contain the field 'error' with the decode fault description.
+			This field (error) will be set to 'None' if decoding was successful.
+
+	"""
+
+	# We need the packet as a string - convert to a string in case we were passed a list of bytes,
+	# which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
 	packet = str(bytearray(packet))
 	gps_data = {}
 
@@ -221,7 +235,12 @@ def gps_telemetry_decoder(packet):
 
 
 def gps_telemetry_string(packet):
+	""" Produce a String representation of a GPS Telemetry packet"""
+
+	# Decode packet to a dictionary 
 	gps_data = gps_telemetry_decoder(packet)
+
+	# Check if there was a decode error. If not, produce a string.
 	if gps_data['error'] != 'None':
 		return "GPS: ERROR Could not decode."
 	else:
@@ -237,23 +256,70 @@ def gps_telemetry_string(packet):
 			gps_data['numSV'],
 			gps_data['dynamic_model_str']
 			)
+
 		return gps_data_string
 
 #
-# IMU Telemetry Decoder
+# Orientation Telemetry Decoder
 #
-def imu_telemetry_decoder(packet):
-	return "Not Implemented."
+def orientation_telemetry_decoder(packet):
+	""" Extract Orientation Telemetry data from a supplied packet, and return it as a dictionary.
 
-def imu_telemetry_string(packet):
-	return "IMU: Not Implemented Yet."
+	Keyword Arguments:
+	packet:	An Orientation telemetry packet, as per https://docs.google.com/document/d/12230J1X3r2-IcLVLkeaVmIXqFeo3uheurFakElIaPVo/edit?usp=sharing
+			This can be provided as either a string, or a list of integers, which will be converted
+			to a string prior to decoding.
+
+	Return value:
+			A dictionary containing the decoded packet data. 
+			If the decode failed for whatever reason, a dictionary will still be returned, but will 
+			contain the field 'error' with the decode fault description.
+			This field (error) will be set to 'None' if decoding was successful.
+
+	"""
+
+	# We need the packet as a string - convert to a string in case we were passed a list of bytes,
+	# which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
+	packet = str(bytearray(packet))
+
+	# SHSSP Code goes here.
+
+	return {'error': "Orientation: Not Implemented."}
+
+def orientation_telemetry_string(packet):
+	""" Produce a String representation of an Orientation Telemetry packet"""
+
+	return "Orientation: Not Implemented Yet."
 
 
 #
-# Image (Combined GPS/IMU) Telemetry Decoder
+# Image (Combined GPS/Orientation + Image ID) Telemetry Decoder
 #
 def image_telemetry_decoder(packet):
-	return "Not Implemented."
+	""" Extract Image Telemetry data from a supplied packet, and return it as a dictionary.
+
+	Keyword Arguments:
+	packet:	An Image telemetry packet, as per https://docs.google.com/document/d/12230J1X3r2-IcLVLkeaVmIXqFeo3uheurFakElIaPVo/edit?usp=sharing
+			This can be provided as either a string, or a list of integers, which will be converted
+			to a string prior to decoding.
+
+	Return value:
+			A dictionary containing the decoded packet data. 
+			If the decode failed for whatever reason, a dictionary will still be returned, but will 
+			contain the field 'error' with the decode fault description.
+			This field (error) will be set to 'None' if decoding was successful.
+
+	"""
+
+	# We need the packet as a string - convert to a string in case we were passed a list of bytes,
+	# which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
+	packet = str(bytearray(packet))
+
+	# SHSSP Code goes here.
+
+	return {'error': "Image Telemetry: Not Implemented."}
 
 def image_telemetry_string(packet):
+	""" Produce a String representation of an Image Telemetry packet"""
+	
 	return "Image Telemetry: Not Implemented Yet."
