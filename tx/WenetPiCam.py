@@ -26,7 +26,7 @@ class WenetPiCam(object):
 	def __init__(self,
 				src_resolution=(3280,2464),
 				tx_resolution=(1488,1120), 
-				num_images=5,
+				num_images=1,
 				image_delay=0.5, 
 				vertical_flip = False, 
 				horizontal_flip = False,

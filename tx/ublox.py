@@ -1163,8 +1163,6 @@ if __name__ == "__main__":
 
     gps = UBloxGPS(port=sys.argv[1], callback=gps_test, update_rate_ms=500, dynamic_model=DYNAMIC_MODEL_AIRBORNE1G)
 
-    iTOW = 0.0 # Last fix time. Only print if this changes.
-
     try:
         while True:
             time.sleep(1)
