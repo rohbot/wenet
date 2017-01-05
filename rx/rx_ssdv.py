@@ -86,7 +86,7 @@ while True:
 		broadcast_telemetry_packet(data)
 		print(packet_to_string(data))
 
-	elif packet_type == WENET_PACKET_TYPES.IMU_TELEMETRY:
+	elif packet_type == WENET_PACKET_TYPES.ORIENTATION_TELEMETRY:
 		broadcast_telemetry_packet(data)
 		print(packet_to_string(data))
 

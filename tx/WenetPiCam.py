@@ -24,7 +24,7 @@ class WenetPiCam(object):
 	"""
 
 	def __init__(self,
-				callsign = "N0CALL"
+				callsign = "N0CALL",
 				src_resolution=(3280,2464),
 				tx_resolution=(1488,1120), 
 				num_images=1,
