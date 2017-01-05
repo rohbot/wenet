@@ -1149,7 +1149,8 @@ class UBloxGPS(object):
         self.rx_running = False
         time.sleep(0.5)
         self.gps.close()
-        self.log_file.close()
+        if self.log_file != None:
+            self.log_file.close()
 
 if __name__ == "__main__":
     """ Basic test script for the above UBloxGPS class. 

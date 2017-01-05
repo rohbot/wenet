@@ -39,6 +39,8 @@ class WenetGPhoto(object):
 			used to capture images using GPhoto.
 
 			Keyword Arguments:
+			callsign: The callsign to be used when converting images to SSDV. Must be <=6 characters in length.
+			
 			resolution: Tuple (x,y) containing desired image *transmit* resolution.
 						NOTE: The raw image from the camera will be saved with whatever resolution is set on the camera.
 						NOTE: both x and y need to be multiples of 16 to be used with SSDV.

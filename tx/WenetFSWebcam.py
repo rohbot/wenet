@@ -31,6 +31,7 @@ class WenetFSWebcam(object):
 			used to capture images using GPhoto.
 
 			Keyword Arguments:
+			callsign: The callsign to be used when converting images to SSDV. Must be <=6 characters in length.
 			fswebcam_config: A configuration file containing the desired webcam capture parameters.
 							 Refer to the fswebcam man page for more information.
 
