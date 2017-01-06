@@ -3,12 +3,17 @@
 #	Wenet fswebcam Wrapper Class.
 #
 
-from time import sleep
+import time
 from threading import Thread
 import glob
 import os
-import subprocess
+import sys
 import datetime
+
+if os.name == 'posix' and sys.version_info[0] < 3:
+    import subprocess32 as subprocess
+else:
+    import subprocess
 
 class WenetFSWebcam(object):
 	""" fswebcam Wrapper Class
@@ -95,12 +100,17 @@ class WenetFSWebcam(object):
 			# Wrap this in error handling in case we lose the camera for some reason.
 			try:
 				temp_filename = "%s_%d.jpg" % (self.temp_filename_prefix,i)
-
+				start_time = time.time()
 				proc = subprocess.Popen(['fswebcam','-c', self.fswebcam_config, temp_filename],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-				proc.wait()
-				if "No such file or directory" in proc.stderr.read():
-					self.debug_message("ERROR: No Camera Connected!")
+				(proc_stdout, proc_stderr) = proc.communicate(timeout=10)
+				#print(proc_stdout)
+				#print("stderr:")
+				#print(proc_stderr)
+				if "Writing JPEG image to" not in proc_stderr:
+					self.debug_message("ERROR: Capture Failed.")
 					return False
+				else:
+					print(time.time()-start_time)
 
 			except Exception as e: # TODO: Narrow this down...
 				self.debug_message("ERROR: %s" % str(e))
@@ -111,6 +121,11 @@ class WenetFSWebcam(object):
 		# Otherwise, continue to pick the 'best' image based on filesize.
 		self.debug_message("Choosing Best Image.")
 		pic_list = glob.glob("%s_*.jpg" % self.temp_filename_prefix)
+
+		if len(pic_list) == 0:
+			self.debug_message("ERROR: No Images Captured!")
+			return False
+
 		pic_sizes = []
 		# Iterate through list of images and get the file sizes.
 		for pic in pic_list:
@@ -191,7 +206,7 @@ class WenetFSWebcam(object):
 
 		while self.auto_capture_running:
 			# Sleep before capturing next image.
-			sleep(delay)
+			time.sleep(delay)
 
 			# Grab current timestamp.
 			capture_time = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
@@ -203,7 +218,7 @@ class WenetFSWebcam(object):
 			# If capture was unsuccessful, wait a few seconds and try and continue,
 			# in case the camera is re-connected.
 			if not capture_successful:
-				sleep(10)
+				time.sleep(10)
 				continue
 
 			# Otherwise, proceed to post-processing step.
@@ -219,7 +234,7 @@ class WenetFSWebcam(object):
 
 			# Check the SSDV Conversion has completed properly. If not, wait a second then continue.
 			if ssdv_filename == "FAIL":
-				sleep(1)
+				time.sleep(1)
 				continue
 
 
@@ -229,7 +244,7 @@ class WenetFSWebcam(object):
 			# Wait until the transmit queue is empty before pushing in packets.
 			self.debug_message("Waiting for SSDV TX queue to empty.")
 			while tx.image_queue_empty() == False:
-				sleep(0.05) # Sleep for a short amount of time.
+				time.sleep(0.05) # Sleep for a short amount of time.
 				if self.auto_capture_running == False:
 					return
 
@@ -308,7 +323,7 @@ if __name__ == "__main__":
 	try:
 		while True:
 			tx.transmit_text_message("Waiting...")
-			sleep(5)
+			time.sleep(5)
 	except KeyboardInterrupt:
 		print("Closing")
 		gphoto.stop()

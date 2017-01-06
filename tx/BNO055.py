@@ -374,7 +374,7 @@ class BNO055(object):
         # Enter operation mode to read sensor data.
         self.set_mode(self._mode)
 
-    def begin(self, mode=OPERATION_MODE_NDOF):
+    def begin(self, mode=OPERATION_MODE_NDOF, reset=True):
         """Initialize the BNO055 sensor.  Must be called once before any other
         BNO055 library functions.  Will return True if the BNO055 was
         successfully initialized, and False otherwise.
@@ -399,17 +399,18 @@ class BNO055(object):
         logger.debug('Read chip ID: 0x{0:02X}'.format(bno_id))
         if bno_id != BNO055_ID:
             return False
-        # Reset the device.
-        if self._rst is not None:
-            # Use the hardware reset pin if provided.
-            # Go low for a short period, then high to signal a reset.
-            self._gpio.set_low(self._rst)
-            time.sleep(0.01)  # 10ms
-            self._gpio.set_high(self._rst)
-        else:
-            # Else use the reset command.  Note that ack=False is sent because
-            # the chip doesn't seem to ack a reset in serial mode (by design?).
-            self._write_byte(BNO055_SYS_TRIGGER_ADDR, 0x20, ack=False)
+        # Reset the device (if we need to)
+        if reset:
+            if self._rst is not None:
+                # Use the hardware reset pin if provided.
+                # Go low for a short period, then high to signal a reset.
+                self._gpio.set_low(self._rst)
+                time.sleep(0.01)  # 10ms
+                self._gpio.set_high(self._rst)
+            else:
+                # Else use the reset command.  Note that ack=False is sent because
+                # the chip doesn't seem to ack a reset in serial mode (by design?).
+                self._write_byte(BNO055_SYS_TRIGGER_ADDR, 0x20, ack=False)
         # Wait 650ms after reset for chip to be ready (as suggested
         # in datasheet).
         time.sleep(0.65)
@@ -748,7 +749,15 @@ class WenetBNO055(object):
         'quaternion_y': 0.0,
         'quaternion_z': 0.0,
         'quaternion_w': 0.0,
+        # Validity flag. We set this to false as soon as we encounter a serial connection drop.
+        'valid':    False
     }
+
+    # Local storage of calibration data, in case of USB connection reset.
+    calibration_data = None
+
+    # Adafruit BNO055 object.
+    bno = None
 
     def __init__(self,
         port='/dev/ttyUSB0',
@@ -791,10 +800,17 @@ class WenetBNO055(object):
             self.log_file = None
 
         self.bno = None
+        self.init()
+
+        # Start RX thead.
+        self.rx_thread = Thread(target=self.rx_loop)
+        self.rx_thread.start()
+
+    def init(self, reset=True):
         while self.bno == None:
             try:
                 self.bno = BNO055(serial_port=port)
-                success = self.bno.begin()
+                success = self.bno.begin(reset=reset)
                 if success:
                     self.debug_message("Connected to BNO055!")
                     continue
@@ -806,10 +822,6 @@ class WenetBNO055(object):
                 self.bno = None
             self.debug_message("Attempting BNO055 re-connect in 5 seconds.")
             time.sleep(5)
-
-        # Start RX thead.
-        self.rx_thread = Thread(target=self.rx_loop)
-        self.rx_thread.start()
 
     def close(self):
         self.rx_running = False
@@ -925,6 +937,7 @@ class WenetBNO055(object):
                 self.write_state('gravity_accel_x', gravity_accel_x)
                 self.write_state('gravity_accel_y', gravity_accel_y)
                 self.write_state('gravity_accel_z', gravity_accel_z)
+                self.write_state('valid', True)
 
                 # Clear write locks.
                 self.state_blockwrite = False
@@ -938,8 +951,29 @@ class WenetBNO055(object):
 
                 self.rx_counter += 1
 
+                # Some logic to store calibration data.
+                if (sys==3) and (gyro==3) and (accel==3) and (mag==3) and (self.calibration_data != None):
+                    # We are fully calibrated! Suck down this data.
+                    self.calibration_data = self.bno.get_calibration()
+                    self.debug_message("Calibration Data has been stored.")
+
+
             except Exception as e:
                 self.debug_message("ERROR: %s" % str(e))
+                # Set state validity to false.
+                self.write_state('valid', False)
+                # Attempt to re-connect.
+                self.debug_message("Attempting to re-connect.")
+                # Close existing object.
+                self.bno.close()
+                self.bno = None
+                # Attempt to re-connect to BNO055. This will loop until it connects.
+                self.init()
+                # Push in saved calibration data, if we have it.
+                if self.calibration_data != None:
+                    self.bno.set_calibration(self.calibration_data)
+                    self.debug_message("Calibration Data re-loaded.")
+
 
             # Delay.
             time.sleep(1.0/self.update_rate_hz)
@@ -951,9 +985,9 @@ if __name__ == "__main__":
     def print_state(state):
         print(state)
 
-    imu = WenetBNO055(port=port, update_rate_hz = 5, callback=print_state, callback_decimation=1)
+    imu = WenetBNO055(port=port, update_rate_hz = 5, callback=print_state, callback_decimation=5)
 
-    time.sleep(10)
+    time.sleep(30)
 
     imu.close()
 
