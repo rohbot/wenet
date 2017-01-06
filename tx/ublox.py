@@ -931,7 +931,7 @@ class UBloxGPS(object):
         """ Initialise a UBloxGPS Abstraction layer object.
         
         Keyword Arguments:
-        port:   Serial Port where uBlox is connected. 
+        port:   Serial Port where uBlox is connected. See 99-usb-serial.rules for suitable udev rules to make a /dev/ublox symlink.
         baudrate: Serial port baud-rate.
         timeout: Serial port timeout.
 
