@@ -290,10 +290,31 @@ class PacketTX(object):
 		orientation_telemetry_decoder
 
 		"""
+		try:
+			orientation_packet = struct.pack(">BHIBBBBBBBbfffffff",
+				2,	# Packet ID for the Orientation Telemetry Packet.
+				week,
+				int(iTOW*1000),	# Convert the GPS week value to milliseconds, and cast to an int.
+				leapS,
+				orientation_data['sys_status'],
+				orientation_data['sys_error'],
+				orientation_data['sys_cal'],
+				orientation_data['gyro_cal'],
+				orientation_data['accel_cal'],
+				orientation_data['magnet_cal'],
+				orientation_data['temp'],
+				orientation_data['euler_heading'],
+				orientation_data['euler_roll'],
+				orientation_data['euler_pitch'],
+				orientation_data['quaternion_x'],
+				orientation_data['quaternion_y'],
+				orientation_data['quaternion_z'],
+				orientation_data['quaternion_w']
+				)
 
-		# SHSSP Code goes here...
-
-		self.transmit_text_message("Orientation Telemetry Not Implemented.")
+			self.queue_telemetry_packet(orientation_packet)
+		except:
+			traceback.print_exc()
 
 		return
 
