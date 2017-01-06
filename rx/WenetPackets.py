@@ -22,6 +22,7 @@ class WENET_PACKET_TYPES:
 class WENET_PACKET_LENGTHS:
 	GPS_TELEMETRY 		= 35
 	ORIENTATION_TELEMETRY = 43
+	IMAGE_TELEMETRY = 71
 
 def decode_packet_type(packet):
 	# Convert packet to a list of integers before parsing.
@@ -363,7 +364,6 @@ def orientation_telemetry_string(packet):
 		return orientation_data_string
 
 
-
 #
 # Image (Combined GPS/Orientation + Image ID) Telemetry Decoder
 #
@@ -387,6 +387,102 @@ def image_telemetry_decoder(packet):
 	# which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
 	packet = str(bytearray(packet))
 
+	image_data = {}
+
+	
+	# Some basic sanity checking of the packet before we attempt to decode.
+	if len(packet) < WENET_PACKET_LENGTHS.IMAGE_TELEMETRY:
+		return {'error': 'Image Telemetry Packet has invalid length.'}
+	elif len(packet) > WENET_PACKET_LENGTHS.IMAGE_TELEMETRY:
+		# If the packet is too big (which it will be, as it's padded with 0x55's), clip it. 
+		packet = packet[:WENET_PACKET_LENGTHS.IMAGE_TELEMETRY]
+	else:
+		pass
+
+	# Wrap the next bit in exception handling.
+	try:
+		# Unpack the packet into a list.
+		data = struct.unpack('>BBHIBffffffBBBBBBBBBbfffffff', packet)
+
+		image_data['image_id'] = data[1]
+		image_data['week'] 	= data[2]
+		image_data['iTOW'] 	= data[3]/1000.0 # iTOW provided as milliseconds, convert to seconds.
+		image_data['leapS'] 	= data[4]
+		image_data['latitude'] = data[5]
+		image_data['longitude'] = data[6]
+		image_data['altitude'] = data[7]
+		image_data['ground_speed'] = data[8]
+		image_data['heading'] = data[9]
+		image_data['ascent_rate'] = data[10]
+		image_data['numSV'] 	= data[11]
+		image_data['gpsFix']	= data[12]
+		image_data['dynamic_model'] = data[13]
+
+		# Perform some post-processing on the data, to make some of the fields easier to read.
+
+		# Produce a human-readable timestamp, in UTC time.
+		image_data['timestamp'] = gps_weeksecondstoutc(image_data['week'], image_data['iTOW'], image_data['leapS'])
+
+		# Produce a human-readable indication of GPS Fix state.
+		if image_data['gpsFix'] == 0:
+			image_data['gpsFix_str'] = 'No Fix'
+		elif image_data['gpsFix'] == 2:
+			image_data['gpsFix_str'] = '2D Fix'
+		elif image_data['gpsFix'] == 3:
+			image_data['gpsFix_str'] = '3D Fix'
+		elif image_data['gpsFix'] == 5:
+			image_data['gpsFix_str'] = 'Time Only'
+		else:
+			image_data['gpsFix_str'] = 'Unknown (%d)' % image_data['gpsFix']
+
+		# Produce a human-readable indication of the current dynamic model.
+		if image_data['dynamic_model'] == 0:
+			image_data['dynamic_model_str'] = 'Portable'
+		elif image_data['dynamic_model'] == 1:
+			image_data['dynamic_model_str'] = 'Not Used'
+		elif image_data['dynamic_model'] == 2:
+			image_data['dynamic_model_str'] = 'Stationary'
+		elif image_data['dynamic_model'] == 3:
+			image_data['dynamic_model_str'] = 'Pedestrian'
+		elif image_data['dynamic_model'] == 4:
+			image_data['dynamic_model_str'] = 'Automotive'
+		elif image_data['dynamic_model'] == 5:
+			image_data['dynamic_model_str'] = 'Sea'
+		elif image_data['dynamic_model'] == 6:
+			image_data['dynamic_model_str'] = 'Airborne 1G'
+		elif image_data['dynamic_model'] == 7:
+			image_data['dynamic_model_str'] = 'Airborne 2G'
+		elif image_data['dynamic_model'] == 8:
+			image_data['dynamic_model_str'] = 'Airborne 4G'
+		else:
+			image_data['dynamic_model_str'] = 'Unknown'
+
+		image_data['sys_status'] 	= data[14]
+		image_data['sys_error']	= data[15]
+		image_data['sys_cal'] 	= data[16]
+		image_data['gyro_cal'] 	= data[17]
+		image_data['accel_cal'] 	= data[18]
+		image_data['magnet_cal'] 	= data[19]
+		image_data['temp'] 		= data[20]
+
+		image_data['euler_heading'] = data[21]
+		image_data['euler_roll'] = data[22]
+		image_data['euler_pitch'] = data[23]
+
+		image_data['quaternion_x'] = data[24]
+		image_data['quaternion_y'] = data[25]
+		image_data['quaternion_z'] = data[26]
+		image_data['quaternion_w'] = data[27]
+
+		image_data['error'] = 'None'
+
+		return image_data
+
+	except:
+		traceback.print_exc()
+		print(packet)
+		return {'error': 'Could not decode Image telemetry packet.'}
+
 	# SHSSP Code goes here.
 
 	return {'error': "Image Telemetry: Not Implemented."}
@@ -394,4 +490,22 @@ def image_telemetry_decoder(packet):
 def image_telemetry_string(packet):
 	""" Produce a String representation of an Image Telemetry packet"""
 
-	return "Image Telemetry: Not Implemented Yet."
+	image_data = image_telemetry_decoder(packet)
+
+	# Check if there was a decode error. If not, produce a string.
+	if image_data['error'] != 'None':
+		return "Image Telemetry: ERROR Could not decode."
+	else:
+		image_data_string = "Image Telemetry: ID #%d, %s Lat/Lon: %.5f,%.5f Alt: %d m Fix: %s Euler: (%.1f,%.1f,%.1f)" % (
+			image_data['image_id'],
+			image_data['timestamp'],
+			image_data['latitude'],
+			image_data['longitude'],
+			image_data['altitude'],
+			image_data['gpsFix_str'],
+			image_data['euler_heading'],
+			image_data['euler_roll'],
+			image_data['euler_pitch'],
+			)
+
+		return image_data_string
