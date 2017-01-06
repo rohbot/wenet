@@ -801,7 +801,6 @@ class WenetBNO055(object):
             self.log_file = None
 
         self.bno = None
-        self.init()
 
         # Start RX thead.
         self.rx_thread = Thread(target=self.rx_loop)
@@ -810,7 +809,7 @@ class WenetBNO055(object):
     def init(self, reset=True):
         while self.bno == None:
             try:
-                self.bno = BNO055(serial_port=port)
+                self.bno = BNO055(serial_port=self.port)
                 success = self.bno.begin(reset=reset)
                 if success:
                     self.debug_message("Connected to BNO055!")
@@ -890,6 +889,9 @@ class WenetBNO055(object):
     def rx_loop(self):
         """ Main BNO055 polling loop. """
 
+        # Initialise BNO055
+        self.init()
+
         while self.rx_running:
             try:
                 # Grab a complete set of data from the BNO055
@@ -943,7 +945,6 @@ class WenetBNO055(object):
                 # Clear write locks.
                 self.state_blockwrite = False
                 self.state_writelock = False
-                print(time.time()-start)
 
                 if self.rx_counter % self.callback_decimation == 0:
                     # Send data to the callback function.

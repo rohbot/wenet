@@ -18,6 +18,7 @@ import serial
 import Queue
 import sys
 import os
+import datetime
 import crcmod
 import struct
 import traceback
@@ -69,7 +70,14 @@ class PacketTX(object):
 	text_message_count = 0
 
 	# WARNING: 115200 baud is ACTUALLY 115386.834 baud, as measured using a freq counter.
-	def __init__(self,serial_port="/dev/ttyAMA0", serial_baud=115200, payload_length=256, fec=True, debug = False, callsign="N0CALL"):
+	def __init__(self,
+		serial_port="/dev/ttyAMA0", 
+		serial_baud=115200, 
+		payload_length=256, 
+		fec=True, 
+		debug = False, 
+		callsign="N0CALL",
+		log_file = None):
 		
 		# Instantiate our low-level transmit interface, be it a serial port, or the BinaryDebug class.
 		if debug == True:
@@ -87,6 +95,11 @@ class PacketTX(object):
 		self.crc16 = crcmod.predefined.mkCrcFun('crc-ccitt-false')
 
 		self.idle_message = self.frame_packet(self.idle_sequence,fec=fec)
+
+		if log_file != None:
+			self.log_file = open(log_file,'a')
+		else:
+			self.log_file = None
 
 	def start_tx(self):
 		self.transmit_active = True
@@ -214,7 +227,13 @@ class PacketTX(object):
 		packet = "\x00" + struct.pack(">BH",len(message),self.text_message_count) + message
 
 		self.queue_telemetry_packet(packet, repeats=repeats)
-		print("TXing Text Message #%d: %s" % (self.text_message_count,message))
+		log_string = "TXing Text Message #%d: %s" % (self.text_message_count,message)
+
+		if self.log_file != None:
+			self.log_file.write(datetime.datetime.now().isoformat() + "," + log_string + "\n")
+
+		print(log_string)
+
 
 	def transmit_gps_telemetry(self, gps_data):
 		""" Generate and Transmit a GPS Telemetry Packet.
@@ -274,6 +293,8 @@ class PacketTX(object):
 
 		# SHSSP Code goes here...
 
+		self.transmit_text_message("Orientation Telemetry Not Implemented.")
+
 		return
 
 	def transmit_image_telemetry(self, gps_data, orientation_data, image_id):
@@ -298,7 +319,7 @@ class PacketTX(object):
 		"""
 
 		# SHSSP Code goes here...
-
+		self.transmit_text_message("Image Telemetry Not Implemented.")
 		return
 
 

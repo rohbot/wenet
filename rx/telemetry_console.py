@@ -11,6 +11,8 @@ import datetime
 import traceback
 from WenetPackets import *
 
+log_file = open('telemetry.log', 'a')
+
 def process_udp(udp_packet):
     """ Process received UDP packets. """
     # Grab timestamp.
@@ -21,7 +23,11 @@ def process_udp(udp_packet):
     packet = packet_dict['packet']
 
     # Convert to string, and print to terminal with timestamp.
-    print("%s \t%s" % (timestamp,packet_to_string(packet)))
+    telem_string = "%s \t%s" % (timestamp,packet_to_string(packet))
+
+    print(telem_string)
+    log_file.write(telem_string + "\n")
+    log_file.flush()
 
 
 

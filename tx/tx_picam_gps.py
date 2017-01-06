@@ -108,7 +108,13 @@ def post_process_image(filename):
 
 
 # Finally, initialise the PiCam capture object.
-picam = WenetPiCam.WenetPiCam(resolution=(1920,1088), callsign=callsign, num_images=5, debug_ptr=tx.transmit_text_message, vertical_flip=False, horizontal_flip=False)
+picam = WenetPiCam.WenetPiCam(src_resolution=(1920,1088), 
+		tx_resolution=(1920,1088), 
+		callsign=callsign, 
+		num_images=5, 
+		debug_ptr=tx.transmit_text_message, 
+		vertical_flip=False, 
+		horizontal_flip=False)
 # .. and start it capturing continuously.
 picam.run(destination_directory="./tx_images/", 
 	tx = tx,
