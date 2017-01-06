@@ -1,0 +1,8 @@
+# Assuming the BNO055 is connected via a FTDI USB-UART cable.
+# Note: Plugging in more than one FTDI Cable will cause the symlink to jump to the newest device.
+# This can be fixed by determining the specific cables serial number, and adding a 
+# ATTRS{serial}=="serialnumberhere" argument to the udev line.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="bno"
+
+# uBlox-7 GPS unit (Gmouse VK-102 unit purchased on ebay, using a uBlox G7020 chip.)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1546", ATTRS{idProduct}=="01a7", SYMLINK+="ublox"

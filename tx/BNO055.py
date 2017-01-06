@@ -760,7 +760,7 @@ class WenetBNO055(object):
     bno = None
 
     def __init__(self,
-        port='/dev/ttyUSB0',
+        port='/dev/bno',
         update_rate_hz = 10,
         callback = None,
         callback_decimation = 10,
@@ -771,6 +771,7 @@ class WenetBNO055(object):
 
         Keyword Arguments:
         port:   Serial port where the BNO055 is connected. The default baud rate of 115200 baud will be used.
+                See 99-usb-serial.rules for suitable udev rules to make a /dev/bno symlink.
         update_rate_hz: The rate at which the internal state vector is updated, in Hz.
 
         callback: reference to a callback function that will be passed a copy of the above
@@ -968,7 +969,8 @@ class WenetBNO055(object):
                 self.bno.close()
                 self.bno = None
                 # Attempt to re-connect to BNO055. This will loop until it connects.
-                self.init()
+                # Don't reset the BNO055 upon reconnection.
+                self.init(reset=False)
                 # Push in saved calibration data, if we have it.
                 if self.calibration_data != None:
                     self.bno.set_calibration(self.calibration_data)

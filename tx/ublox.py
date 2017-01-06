@@ -921,7 +921,7 @@ class UBloxGPS(object):
     state_writelock = False
     state_readlock = False
 
-    def __init__(self,port='/dev/ttyACM0', baudrate=115200, timeout=2,
+    def __init__(self,port='/dev/ublox', baudrate=115200, timeout=2,
             callback=None,
             update_rate_ms=500,
             dynamic_model=DYNAMIC_MODEL_AIRBORNE1G,
