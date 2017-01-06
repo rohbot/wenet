@@ -72,7 +72,11 @@ class WenetPiCam(object):
 		self.cam = PiCamera()
 
 		# Configure camera.
-		self.cam.resolution = src_resolution
+		try:
+			self.cam.resolution = src_resolution
+		except:
+			# Default to Picam 1 max resolution if we cannot set the higher PiCam 2 resolution.
+			self.cam.resolution = (2592,1944)
 		self.cam.hflip = horizontal_flip
 		self.cam.vflip = vertical_flip
 		self.cam.exposure_mode = 'auto'
