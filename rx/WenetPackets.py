@@ -65,7 +65,7 @@ def ssdv_decode_callsign(code):
 	while code:
 		callsign += _ssdv_callsign_alphabet[code % 40]
 		code /= 40
-    
+	
 	return callsign
 
 def ssdv_packet_info(packet):
@@ -138,11 +138,11 @@ def text_message_string(packet):
 # The above 
 
 def gps_weeksecondstoutc(gpsweek, gpsseconds, leapseconds):
-    """ Convert time in GPS time (GPS Week, seconds-of-week) to a UTC timestamp """
-    epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
-    elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds+leapseconds))
-    timestamp = epoch + elapsed
-    return timestamp.isoformat()
+	""" Convert time in GPS time (GPS Week, seconds-of-week) to a UTC timestamp """
+	epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
+	elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds+leapseconds))
+	timestamp = epoch + elapsed
+	return timestamp.isoformat()
 
 def gps_telemetry_decoder(packet):
 	""" Extract GPS telemetry data from a packet, and return it as a dictionary. 
@@ -524,13 +524,13 @@ def image_telemetry_string(packet):
 
 # CRC16 function for the above.
 def crc16_ccitt(data):
-    """
-    Calculate the CRC16 CCITT checksum of *data*.
-    
-    (CRC16 CCITT: start 0xFFFF, poly 0x1021)
-    """
-    crc16 = crcmod.predefined.mkCrcFun('crc-ccitt-false')
-    return hex(crc16(data))[2:].upper().zfill(4)
+	"""
+	Calculate the CRC16 CCITT checksum of *data*.
+	
+	(CRC16 CCITT: start 0xFFFF, poly 0x1021)
+	"""
+	crc16 = crcmod.predefined.mkCrcFun('crc-ccitt-false')
+	return hex(crc16(data))[2:].upper().zfill(4)
 
 
 def image_telemetry_habitat_string(packet):
@@ -575,37 +575,37 @@ def image_telemetry_habitat_string(packet):
 def image_telemetry_upload(packet, user_callsign="N0CALL"):
 	""" Upload an image telemetry packet to habitat. """
 
-    sentence = image_telemetry_habitat_string(packet)
+	sentence = image_telemetry_habitat_string(packet)
 
-    sentence_b64 = b64encode(sentence)
+	sentence_b64 = b64encode(sentence)
 
-    date = datetime.datetime.utcnow().isoformat("T") + "Z"
+	date = datetime.datetime.utcnow().isoformat("T") + "Z"
 
-    data = {
-        "type": "payload_telemetry",
-        "data": {
-            "_raw": sentence_b64
-            },
-        "receivers": {
-            user_callsign: {
-                "time_created": date,
-                "time_uploaded": date,
-                },
-            },
-    }
-    try:
-        c = httplib.HTTPConnection("habitat.habhub.org",timeout=5)
-        c.request(
-            "PUT",
-            "/habitat/_design/payload_telemetry/_update/add_listener/%s" % sha256(sentence_b64).hexdigest(),
-            json.dumps(data),  # BODY
-            {"Content-Type": "application/json"}  # HEADERS
-            )
+	data = {
+		"type": "payload_telemetry",
+		"data": {
+			"_raw": sentence_b64
+			},
+		"receivers": {
+			user_callsign: {
+				"time_created": date,
+				"time_uploaded": date,
+				},
+			},
+	}
+	try:
+		c = httplib.HTTPConnection("habitat.habhub.org",timeout=5)
+		c.request(
+			"PUT",
+			"/habitat/_design/payload_telemetry/_update/add_listener/%s" % sha256(sentence_b64).hexdigest(),
+			json.dumps(data),  # BODY
+			{"Content-Type": "application/json"}  # HEADERS
+			)
 
-        response = c.getresponse()
-        return "Image Telemetry: Uploaded to Habitat Successfuly."
-    except Exception as e:
-        return "Failed to upload to Habitat: %s" % (str(e))
+		response = c.getresponse()
+		return (True, "Image Telemetry: Uploaded to Habitat Successfuly.")
+	except Exception as e:
+		return (False, "Failed to upload to Habitat: %s" % (str(e)))
 
 
 

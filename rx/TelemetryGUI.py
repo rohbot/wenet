@@ -10,6 +10,7 @@ from threading import Thread
 import traceback
 import socket
 import json
+import sys
 import Queue
 import datetime
 from WenetPackets import *
@@ -19,6 +20,11 @@ import numpy as np
 # Various GUI Settings
 imu_plot_history_size = 60 # Seconds.
 
+
+user_callsign = "N0CALL"
+
+if len(sys.argv) > 1:
+	user_callsign = sys.argv[1]
 
 app = QtGui.QApplication([])
 
@@ -73,19 +79,19 @@ gpsFrameLayout.addWidget(gpsFixValidValue,8,1)
 gpsFrame.setLayout(gpsFrameLayout)
 
 def updateGpsFrame(gps_data):
-    """ Update GPS Data Frame with a WenetPackets GPS Data dictionary """
-    try:
-        gpsTimeValue.setText(gps_data['timestamp'])
-        gpsLatitudeValue.setText("%.5f" % gps_data['latitude'])
-        gpsLongitudeValue.setText("%.5f" % gps_data['longitude'])
-        gpsAltitudeValue.setText("%d m" % int(gps_data['altitude']))
-        gpsSpeedValue.setText("H %d kph V %.1f m/s" % ( int(gps_data['ground_speed']), gps_data['ascent_rate']))
-        gpsHeadingValue.setText("%.1f deg" % gps_data['heading'])
-        gpsSatsValue.setText("%d" % gps_data['numSV'])
-        gpsFixValidValue.setText(gps_data['gpsFix_str'])
-    except:
-        traceback.print_exc()
-        pass
+	""" Update GPS Data Frame with a WenetPackets GPS Data dictionary """
+	try:
+		gpsTimeValue.setText(gps_data['timestamp'])
+		gpsLatitudeValue.setText("%.5f" % gps_data['latitude'])
+		gpsLongitudeValue.setText("%.5f" % gps_data['longitude'])
+		gpsAltitudeValue.setText("%d m" % int(gps_data['altitude']))
+		gpsSpeedValue.setText("H %d kph V %.1f m/s" % ( int(gps_data['ground_speed']), gps_data['ascent_rate']))
+		gpsHeadingValue.setText("%.1f deg" % gps_data['heading'])
+		gpsSatsValue.setText("%d" % gps_data['numSV'])
+		gpsFixValidValue.setText(gps_data['gpsFix_str'])
+	except:
+		traceback.print_exc()
+		pass
 
 #
 # IMU Telemetry Data Frame
@@ -174,57 +180,57 @@ roll_curve = imuPlot_Roll.plot(x=imu_times, y=roll_values, pen=pg.mkPen('k',widt
 pitch_curve = imuPlot_Pitch.plot(x=imu_times, y=pitch_values, pen=pg.mkPen('k',width=2))
 
 def updateIMUFrame(imu_data):
-    """ Update IMU Frame and Plots with new IMU data """
-    global imu_times, heading_values, roll_values, pitch_values, heading_curve, roll_curve, pitch_curve
-    try:
-        imuTimeValue.setText(imu_data['timestamp'])
-        imuTempValue.setText("%d" % imu_data['temp'])
-        imuCalStatus_System_OK.setText("%d" % imu_data['sys_cal'])
-        imuCalStatus_Gyro_OK.setText("%d" % imu_data['gyro_cal'])
-        imuCalStatus_Accel_OK.setText("%d" % imu_data['accel_cal'])
-        imuCalStatus_Magnet_OK.setText("%d" % imu_data['magnet_cal'])
-        imuEulerHeadingValue.setText("%.1f" % imu_data['euler_heading'])
-        imuEulerRollValue.setText("%.1f" % imu_data['euler_roll'])
-        imuEulerPitchValue.setText("%.1f" % imu_data['euler_pitch'])
+	""" Update IMU Frame and Plots with new IMU data """
+	global imu_times, heading_values, roll_values, pitch_values, heading_curve, roll_curve, pitch_curve
+	try:
+		imuTimeValue.setText(imu_data['timestamp'])
+		imuTempValue.setText("%d" % imu_data['temp'])
+		imuCalStatus_System_OK.setText("%d" % imu_data['sys_cal'])
+		imuCalStatus_Gyro_OK.setText("%d" % imu_data['gyro_cal'])
+		imuCalStatus_Accel_OK.setText("%d" % imu_data['accel_cal'])
+		imuCalStatus_Magnet_OK.setText("%d" % imu_data['magnet_cal'])
+		imuEulerHeadingValue.setText("%.1f" % imu_data['euler_heading'])
+		imuEulerRollValue.setText("%.1f" % imu_data['euler_roll'])
+		imuEulerPitchValue.setText("%.1f" % imu_data['euler_pitch'])
 
-        latest_imu_time = imu_data['iTOW']
-        latest_euler_heading = imu_data['euler_heading']
-        latest_euler_roll = imu_data['euler_roll']
-        latest_euler_pitch = imu_data['euler_pitch']
+		latest_imu_time = imu_data['iTOW']
+		latest_euler_heading = imu_data['euler_heading']
+		latest_euler_roll = imu_data['euler_roll']
+		latest_euler_pitch = imu_data['euler_pitch']
 
-        if imu_times[0] == 0:
-            # We need to initialise the arrays.
-            imu_times[0] = latest_imu_time
-            heading_values[0] = latest_euler_heading
-            roll_values[0] = latest_euler_roll
-            pitch_values[0] = latest_euler_pitch
-        else:
-            # Append, and crop arrays if they are too big.
-            imu_times.append(latest_imu_time)
-            heading_values.append(latest_euler_heading)
-            roll_values.append(latest_euler_roll)
-            pitch_values.append(latest_euler_pitch)
+		if imu_times[0] == 0:
+			# We need to initialise the arrays.
+			imu_times[0] = latest_imu_time
+			heading_values[0] = latest_euler_heading
+			roll_values[0] = latest_euler_roll
+			pitch_values[0] = latest_euler_pitch
+		else:
+			# Append, and crop arrays if they are too big.
+			imu_times.append(latest_imu_time)
+			heading_values.append(latest_euler_heading)
+			roll_values.append(latest_euler_roll)
+			pitch_values.append(latest_euler_pitch)
 
-            if len(imu_times) > buffer_size:
-                imu_times = imu_times[-1*buffer_size:]
-                heading_values = heading_values[-1*buffer_size:]
-                roll_values = roll_values[-1*buffer_size:]
-                pitch_values = pitch_values[-1*buffer_size:]
+			if len(imu_times) > buffer_size:
+				imu_times = imu_times[-1*buffer_size:]
+				heading_values = heading_values[-1*buffer_size:]
+				roll_values = roll_values[-1*buffer_size:]
+				pitch_values = pitch_values[-1*buffer_size:]
 
-            # Update plots
-            heading_curve.setData(x=(np.array(imu_times)-latest_imu_time), y=heading_values)
-            roll_curve.setData(x=(np.array(imu_times)-latest_imu_time), y = roll_values)
-            pitch_curve.setData(x=(np.array(imu_times)-latest_imu_time), y=pitch_values)
+			# Update plots
+			heading_curve.setData(x=(np.array(imu_times)-latest_imu_time), y=heading_values)
+			roll_curve.setData(x=(np.array(imu_times)-latest_imu_time), y = roll_values)
+			pitch_curve.setData(x=(np.array(imu_times)-latest_imu_time), y=pitch_values)
 
 
-    except:
-        traceback.print_exc()
-        pass
+	except:
+		traceback.print_exc()
+		pass
 
 
 # Telemetry Log
 packetSnifferFrame = QtGui.QFrame()
-packetSnifferFrame.setFixedSize(1300,150)
+packetSnifferFrame.setFixedSize(1200,150)
 packetSnifferFrame.setFrameStyle(QtGui.QFrame.Box)
 packetSnifferTitle = QtGui.QLabel("<b><u>Telemetry Log</u></b>")
 console = QtGui.QPlainTextEdit()
@@ -234,6 +240,40 @@ packetSnifferLayout.addWidget(packetSnifferTitle)
 packetSnifferLayout.addWidget(console)
 packetSnifferFrame.setLayout(packetSnifferLayout)
 
+# Habitat Upload Frame
+uploadFrame = QtGui.QFrame()
+uploadFrame.setFixedSize(200,150)
+uploadFrame.setFrameStyle(QtGui.QFrame.Box)
+uploadFrame.setLineWidth(1)
+uploadFrameTitle = QtGui.QLabel("<b><u>Habitat Upload</u></b>")
+
+uploadFrameHabitat = QtGui.QCheckBox("Habitat Upload")
+uploadFrameHabitat.setChecked(True)
+uploadFrameCallsignLabel = QtGui.QLabel("<b>Your Callsign:</b>")
+uploadFrameCallsign = QtGui.QLineEdit(user_callsign)
+uploadFrameCallsign.setMaxLength(10)
+uploadFrameHabitatStatus = QtGui.QLabel("Last Upload: ")
+
+uploadFrameLayout = QtGui.QGridLayout()
+uploadFrameLayout.addWidget(uploadFrameTitle,0,0,1,1)
+uploadFrameLayout.addWidget(uploadFrameCallsignLabel,1,0,1,1)
+uploadFrameLayout.addWidget(uploadFrameCallsign,1,1,1,1)
+uploadFrameLayout.addWidget(uploadFrameHabitat,2,0,1,2)
+uploadFrameLayout.addWidget(uploadFrameHabitatStatus,3,0,1,2)
+
+uploadFrame.setLayout(uploadFrameLayout)
+
+def imageTelemetryHandler(packet):
+	(upload_ok, error) = image_telemetry_upload(packet, user_callsign = str(uploadFrameCallsign.text()))
+	timestamp = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
+	
+	if upload_ok:
+		uploadFrameHabitatStatus.setText("Last Upload: %s" % datetime.utcnow().strftime("%H:%M:%S"))
+		console.appendPlainText("%s \tHabitat Upload: OK")
+	else:
+		uploadFrameHabitatStatus.setText("Last Upload: Failed!")
+		console.appendPlainText("%s \tHabitat Upload: FAIL: %s" % (timestamp, error))
+
 
 # Main Window
 main_widget = QtGui.QWidget()
@@ -242,8 +282,10 @@ main_widget.setLayout(layout)
 
 layout.addWidget(gpsFrame,0,0)
 layout.addWidget(imuFrame,0,1)
-layout.addWidget(imuPlot,0,2)
-layout.addWidget(packetSnifferFrame,1,0,1,4)
+layout.addWidget(imuPlot,0,2,1,2)
+layout.addWidget(packetSnifferFrame,1,0,1,3)
+layout.addWidget(uploadFrame,1,3,1,1)
+
 
 mainwin = QtGui.QMainWindow()
 mainwin.setWindowTitle("Wenet GPS/IMU Telemetry Console")
@@ -258,69 +300,73 @@ mainwin.show()
 rxqueue = Queue.Queue(32)
 
 def process_udp(udp_packet):
-    """ Process received UDP packets. """
-    # Grab timestamp.
-    timestamp = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
+	""" Process received UDP packets. """
+	# Grab timestamp.
+	timestamp = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
 
-    # Parse JSON, and extract packet.
-    packet_dict = json.loads(udp_packet)
-    packet = packet_dict['packet']
+	# Parse JSON, and extract packet.
+	packet_dict = json.loads(udp_packet)
+	packet = packet_dict['packet']
 
-    # Decode GPS and IMU packets, and pass onto their respective GUI update functions.
-    packet_type = decode_packet_type(packet)
+	# Decode GPS and IMU packets, and pass onto their respective GUI update functions.
+	packet_type = decode_packet_type(packet)
 
-    if packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
-        gps_data = gps_telemetry_decoder(packet)
-        updateGpsFrame(gps_data)
-    elif packet_type == WENET_PACKET_TYPES.ORIENTATION_TELEMETRY:
-        orientation_data = orientation_telemetry_decoder(packet)
-        updateIMUFrame(orientation_data)
-    else:
-        # Convert to string, and print to terminal with timestamp.
-        console.appendPlainText("%s \t%s" % (timestamp,packet_to_string(packet)))
+	if packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
+		gps_data = gps_telemetry_decoder(packet)
+		updateGpsFrame(gps_data)
+	elif packet_type == WENET_PACKET_TYPES.ORIENTATION_TELEMETRY:
+		orientation_data = orientation_telemetry_decoder(packet)
+		updateIMUFrame(orientation_data)
+	elif packet_type == WENET_PACKET_TYPES.IMAGE_TELEMETRY:
+		# Print to console, then attempt to upload packet.
+		console.appendPlainText("%s \t%s" % (timestamp,packet_to_string(packet)))
+		imageTelemetryHandler(packet)
+	else:
+		# Convert to string, and print to terminal with timestamp.
+		console.appendPlainText("%s \t%s" % (timestamp,packet_to_string(packet)))
 
 
 udp_listener_running = False
 def udp_rx_thread():
-    """ Listen on a port for UDP broadcast packets, and pass them onto process_udp()"""
-    global udp_listener_running
-    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    s.settimeout(1)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    except:
-        pass
-    s.bind(('',WENET_TELEMETRY_UDP_PORT))
-    print("Started UDP Listener Thread.")
-    udp_listener_running = True
-    while udp_listener_running:
-        try:
-            m = s.recvfrom(2048)
-        except socket.timeout:
-            m = None
-        
-        if m != None:
-            try:
-                rxqueue.put_nowait(m[0])
-            except:
-                traceback.print_exc()
-                pass
-    
-    print("Closing UDP Listener")
-    s.close()
+	""" Listen on a port for UDP broadcast packets, and pass them onto process_udp()"""
+	global udp_listener_running
+	s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+	s.settimeout(1)
+	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	try:
+		s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+	except:
+		pass
+	s.bind(('',WENET_TELEMETRY_UDP_PORT))
+	print("Started UDP Listener Thread.")
+	udp_listener_running = True
+	while udp_listener_running:
+		try:
+			m = s.recvfrom(2048)
+		except socket.timeout:
+			m = None
+		
+		if m != None:
+			try:
+				rxqueue.put_nowait(m[0])
+			except:
+				traceback.print_exc()
+				pass
+	
+	print("Closing UDP Listener")
+	s.close()
 
 t = Thread(target=udp_rx_thread)
 t.start()
 
 def read_queue():
-    try:
-        if rxqueue.qsize()>0:
-            packet = rxqueue.get_nowait()
-            process_udp(packet)
-    except:
-        traceback.print_exc()
-        pass
+	try:
+		if rxqueue.qsize()>0:
+			packet = rxqueue.get_nowait()
+			process_udp(packet)
+	except:
+		traceback.print_exc()
+		pass
 
 # Start a timer to attempt to read a packet from the queue every 100ms.
 timer = QtCore.QTimer()
@@ -330,7 +376,7 @@ timer.start(100)
 
 ## Start Qt event loop unless running in interactive mode.
 if __name__ == '__main__':
-    import sys
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
-        udp_listener_running = False
+	import sys
+	if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+		QtGui.QApplication.instance().exec_()
+		udp_listener_running = False

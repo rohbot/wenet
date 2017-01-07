@@ -19,6 +19,8 @@ python ssdv_upload.py $MYCALL &
 
 # Start the SSDV RX GUI.
 python rx_gui.py &
+# Start the Telemetry GUI.
+python TelemetryGUI.py $MYCALL &
 
 # Uncomment the following line if using a V3 RTLSDR and need the Bias-Tee enabled.
 # rtl_biast -b 1 

@@ -1131,7 +1131,7 @@ class UBloxGPS(object):
                     self.gps.send_message(CLASS_CFG, MSG_CFG_NAV5,'\x00')
 
                 # Additional checks to be sure we're in the right dynamic model.
-                if self.rx_counder % 40 == 0:
+                if self.rx_counter % 40 == 0:
                     self.gps.set_preferred_dynamic_model(self.dynamic_model)
 
                 # Send data to the callback function.
