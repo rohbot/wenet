@@ -91,7 +91,7 @@ def updateGpsFrame(gps_data):
 # IMU Telemetry Data Frame
 #
 imuFrame = QtGui.QFrame()
-imuFrame.setFixedSize(200,250)
+imuFrame.setFixedSize(250,250)
 imuFrame.setFrameStyle(QtGui.QFrame.Box)
 imuFrame.setLineWidth(2)
 
@@ -102,13 +102,13 @@ imuTemp = QtGui.QLabel("<b>Temp:</b>")
 imuTempValue = QtGui.QLabel("0 deg C")
 imuCalStatus = QtGui.QLabel("<b>Calibration Status</b>")
 imuCalStatus_System = QtGui.QLabel("<u>System</u>")
-imuCalStatus_System_OK = QtGui.QLabel("BAD")
+imuCalStatus_System_OK = QtGui.QLabel("?")
 imuCalStatus_Gyro = QtGui.QLabel("<u>Gyro</u>")
-imuCalStatus_Gyro_OK = QtGui.QLabel("BAD")
+imuCalStatus_Gyro_OK = QtGui.QLabel("?")
 imuCalStatus_Accel = QtGui.QLabel("<u>Accel</u>")
-imuCalStatus_Accel_OK =QtGui.QLabel("BAD")
+imuCalStatus_Accel_OK =QtGui.QLabel("?")
 imuCalStatus_Magnet = QtGui.QLabel("<u>Mag</u>")
-imuCalStatus_Magnet_OK = QtGui.QLabel("BAD")
+imuCalStatus_Magnet_OK = QtGui.QLabel("?")
 imuEulerLabel = QtGui.QLabel("<b><u>Euler Angles</u></b>")
 imuEulerHeadingLabel = QtGui.QLabel("<b>Heading</b>")
 imuEulerHeadingValue = QtGui.QLabel("0 deg")
@@ -146,10 +146,12 @@ imuFrame.setLayout(imuFrameLayout)
 # IMU Plots.
 #
 
-heading_values = np.array([0])
-roll_values = np.array([0])
-pitch_values = np.array([0])
-imu_times = np.array([0])
+buffer_size = 60
+
+heading_values =[0]
+roll_values = [0]
+pitch_values = [0]
+imu_times = [0]
 
 imuPlot = pg.GraphicsLayoutWidget()
 imuPlot_Heading = imuPlot.addPlot(title='Heading')
@@ -160,26 +162,69 @@ imuPlotLayout.rowMaximumHeight(220)
 
 # Configure Plots
 imuPlot_Heading.setXRange(-1*imu_plot_history_size,0)
-imuPlot_Heading.setYRange(-180,180)
+imuPlot_Heading.setYRange(0,360)
 imuPlot_Roll.setXRange(-1*imu_plot_history_size,0)
 imuPlot_Roll.setYRange(-180,180)
 imuPlot_Pitch.setXRange(-1*imu_plot_history_size,0)
 imuPlot_Pitch.setYRange(-180,180)
 
 # Get curve objects so we can update them with new data.
-heading_curve = imuPlot_Heading.plot(x=imu_times, y=heading_values)
-roll_curve = imuPlot_Roll.plot(x=imu_times, y=roll_values)
-pitch_curve = imuPlot_Pitch.plot(x=imu_times, y=pitch_values)
+heading_curve = imuPlot_Heading.plot(x=imu_times, y=heading_values, pen=pg.mkPen('k',width=2))
+roll_curve = imuPlot_Roll.plot(x=imu_times, y=roll_values, pen=pg.mkPen('k',width=2))
+pitch_curve = imuPlot_Pitch.plot(x=imu_times, y=pitch_values, pen=pg.mkPen('k',width=2))
 
 def updateIMUFrame(imu_data):
     """ Update IMU Frame and Plots with new IMU data """
-    # To be Implemented
-    pass
+    global imu_times, heading_values, roll_values, pitch_values, heading_curve, roll_curve, pitch_curve
+    try:
+        imuTimeValue.setText(imu_data['timestamp'])
+        imuTempValue.setText("%d" % imu_data['temp'])
+        imuCalStatus_System_OK.setText("%d" % imu_data['sys_cal'])
+        imuCalStatus_Gyro_OK.setText("%d" % imu_data['gyro_cal'])
+        imuCalStatus_Accel_OK.setText("%d" % imu_data['accel_cal'])
+        imuCalStatus_Magnet_OK.setText("%d" % imu_data['magnet_cal'])
+        imuEulerHeadingValue.setText("%.1f" % imu_data['euler_heading'])
+        imuEulerRollValue.setText("%.1f" % imu_data['euler_roll'])
+        imuEulerPitchValue.setText("%.1f" % imu_data['euler_pitch'])
+
+        latest_imu_time = imu_data['iTOW']
+        latest_euler_heading = imu_data['euler_heading']
+        latest_euler_roll = imu_data['euler_roll']
+        latest_euler_pitch = imu_data['euler_pitch']
+
+        if imu_times[0] == 0:
+            # We need to initialise the arrays.
+            imu_times[0] = latest_imu_time
+            heading_values[0] = latest_euler_heading
+            roll_values[0] = latest_euler_roll
+            pitch_values[0] = latest_euler_pitch
+        else:
+            # Append, and crop arrays if they are too big.
+            imu_times.append(latest_imu_time)
+            heading_values.append(latest_euler_heading)
+            roll_values.append(latest_euler_roll)
+            pitch_values.append(latest_euler_pitch)
+
+            if len(imu_times) > buffer_size:
+                imu_times = imu_times[-1*buffer_size:]
+                heading_values = heading_values[-1*buffer_size:]
+                roll_values = roll_values[-1*buffer_size:]
+                pitch_values = pitch_values[-1*buffer_size:]
+
+            # Update plots
+            heading_curve.setData(x=(np.array(imu_times)-latest_imu_time), y=heading_values)
+            roll_curve.setData(x=(np.array(imu_times)-latest_imu_time), y = roll_values)
+            pitch_curve.setData(x=(np.array(imu_times)-latest_imu_time), y=pitch_values)
+
+
+    except:
+        traceback.print_exc()
+        pass
 
 
 # Telemetry Log
 packetSnifferFrame = QtGui.QFrame()
-packetSnifferFrame.setFixedSize(1200,150)
+packetSnifferFrame.setFixedSize(1300,150)
 packetSnifferFrame.setFrameStyle(QtGui.QFrame.Box)
 packetSnifferTitle = QtGui.QLabel("<b><u>Telemetry Log</u></b>")
 console = QtGui.QPlainTextEdit()
@@ -203,7 +248,7 @@ layout.addWidget(packetSnifferFrame,1,0,1,4)
 mainwin = QtGui.QMainWindow()
 mainwin.setWindowTitle("Wenet GPS/IMU Telemetry Console")
 mainwin.setCentralWidget(main_widget)
-mainwin.resize(1200,400)
+mainwin.resize(1300,400)
 mainwin.show()
 
 
@@ -221,20 +266,18 @@ def process_udp(udp_packet):
     packet_dict = json.loads(udp_packet)
     packet = packet_dict['packet']
 
-    # Convert to string, and print to terminal with timestamp.
-    console.appendPlainText("%s \t%s" % (timestamp,packet_to_string(packet)))
-
     # Decode GPS and IMU packets, and pass onto their respective GUI update functions.
     packet_type = decode_packet_type(packet)
 
     if packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
         gps_data = gps_telemetry_decoder(packet)
         updateGpsFrame(gps_data)
-    elif packet_type == WENET_PACKET_TYPES.IMU_TELEMETRY:
-        imu_data = imu_telemetry_decoder(packet)
-        updateIMUFrame(imu_data)
+    elif packet_type == WENET_PACKET_TYPES.ORIENTATION_TELEMETRY:
+        orientation_data = orientation_telemetry_decoder(packet)
+        updateIMUFrame(orientation_data)
     else:
-        pass
+        # Convert to string, and print to terminal with timestamp.
+        console.appendPlainText("%s \t%s" % (timestamp,packet_to_string(packet)))
 
 
 udp_listener_running = False
