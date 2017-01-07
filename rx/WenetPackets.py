@@ -21,6 +21,8 @@ class WENET_PACKET_TYPES:
 
 class WENET_PACKET_LENGTHS:
 	GPS_TELEMETRY 		= 35
+	ORIENTATION_TELEMETRY = 43
+	IMAGE_TELEMETRY = 80
 
 def decode_packet_type(packet):
 	# Convert packet to a list of integers before parsing.
@@ -282,14 +284,84 @@ def orientation_telemetry_decoder(packet):
 	# which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
 	packet = str(bytearray(packet))
 
-	# SHSSP Code goes here.
+	# Some basic sanity checking of the packet before we attempt to decode.
+	if len(packet) < WENET_PACKET_LENGTHS.ORIENTATION_TELEMETRY:
+		return {'error': 'Orientation Telemetry Packet has invalid length.'}
+	elif len(packet) > WENET_PACKET_LENGTHS.ORIENTATION_TELEMETRY:
+		# If the packet is too big (which it will be, as it's padded with 0x55's), clip it. 
+		packet = packet[:WENET_PACKET_LENGTHS.ORIENTATION_TELEMETRY]
+	else:
+		pass
 
-	return {'error': "Orientation: Not Implemented."}
+	orientation_data = {}
+
+	# Wrap the next bit in exception handling.
+	try:
+		# Unpack the packet into a list.
+		data = struct.unpack('>BHIBBBBBBBbfffffff', packet)
+
+		orientation_data['week'] 	= data[1]
+		orientation_data['iTOW'] 	= data[2]/1000.0 # iTOW provided as milliseconds, convert to seconds.
+		orientation_data['leapS'] 	= data[3]
+
+		# Produce human readable timestamp.
+		orientation_data['timestamp'] = gps_weeksecondstoutc(orientation_data['week'], orientation_data['iTOW'], orientation_data['leapS'])
+
+		orientation_data['sys_status'] 	= data[4]
+		orientation_data['sys_error']	= data[5]
+		orientation_data['sys_cal'] 	= data[6]
+		orientation_data['gyro_cal'] 	= data[7]
+		orientation_data['accel_cal'] 	= data[8]
+		orientation_data['magnet_cal'] 	= data[9]
+		orientation_data['temp'] 		= data[10]
+
+		orientation_data['euler_heading'] = data[11]
+		orientation_data['euler_roll'] = data[12]
+		orientation_data['euler_pitch'] = data[13]
+
+		orientation_data['quaternion_x'] = data[14]
+		orientation_data['quaternion_y'] = data[15]
+		orientation_data['quaternion_z'] = data[16]
+		orientation_data['quaternion_w'] = data[17]
+
+		orientation_data['error'] = 'None'
+
+		return orientation_data
+
+	except:
+		traceback.print_exc()
+		print(packet)
+		return {'error': 'Could not decode Orientation telemetry packet.'}
+
 
 def orientation_telemetry_string(packet):
 	""" Produce a String representation of an Orientation Telemetry packet"""
 
-	return "Orientation: Not Implemented Yet."
+	orientation_data = orientation_telemetry_decoder(packet)
+
+	# Check if there was a decode error. If not, produce a string.
+	if orientation_data['error'] != 'None':
+		return "Orientation: ERROR Could not decode."
+	else:
+		orientation_data_string = "Orientation: %s Status: %d Error: %d Cal: %d %d %d %d Temp: %d Euler: (%.1f,%.1f,%.1f) Quaternion: (%.1f, %.1f, %.1f, %.1f)" % (
+			orientation_data['timestamp'],
+			orientation_data['sys_status'],
+			orientation_data['sys_error'],
+			orientation_data['sys_cal'],
+			orientation_data['gyro_cal'],
+			orientation_data['accel_cal'],
+			orientation_data['magnet_cal'],
+			orientation_data['temp'],
+			orientation_data['euler_heading'],
+			orientation_data['euler_roll'],
+			orientation_data['euler_pitch'],
+			orientation_data['quaternion_x'],
+			orientation_data['quaternion_y'],
+			orientation_data['quaternion_z'],
+			orientation_data['quaternion_w']
+			)
+
+		return orientation_data_string
 
 
 #
@@ -315,11 +387,128 @@ def image_telemetry_decoder(packet):
 	# which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
 	packet = str(bytearray(packet))
 
+	image_data = {}
+
+	
+	# Some basic sanity checking of the packet before we attempt to decode.
+	if len(packet) < WENET_PACKET_LENGTHS.IMAGE_TELEMETRY:
+		return {'error': 'Image Telemetry Packet has invalid length.'}
+	elif len(packet) > WENET_PACKET_LENGTHS.IMAGE_TELEMETRY:
+		# If the packet is too big (which it will be, as it's padded with 0x55's), clip it. 
+		packet = packet[:WENET_PACKET_LENGTHS.IMAGE_TELEMETRY]
+	else:
+		pass
+
+	# Wrap the next bit in exception handling.
+	try:
+		# Unpack the packet into a list.
+		data = struct.unpack('>BH7pBHIBffffffBBBBBBBBBbfffffff', packet)
+
+		image_data['sequence_number'] = data[1]
+		image_data['callsign'] = data[2]
+		image_data['image_id'] = data[3]
+		image_data['week'] 	= data[4]
+		image_data['iTOW'] 	= data[5]/1000.0 # iTOW provided as milliseconds, convert to seconds.
+		image_data['leapS'] 	= data[6]
+		image_data['latitude'] = data[7]
+		image_data['longitude'] = data[8]
+		image_data['altitude'] = data[9]
+		image_data['ground_speed'] = data[10]
+		image_data['heading'] = data[11]
+		image_data['ascent_rate'] = data[12]
+		image_data['numSV'] 	= data[13]
+		image_data['gpsFix']	= data[14]
+		image_data['dynamic_model'] = data[15]
+
+		# Perform some post-processing on the data, to make some of the fields easier to read.
+
+		# Produce a human-readable timestamp, in UTC time.
+		image_data['timestamp'] = gps_weeksecondstoutc(image_data['week'], image_data['iTOW'], image_data['leapS'])
+
+		# Produce a human-readable indication of GPS Fix state.
+		if image_data['gpsFix'] == 0:
+			image_data['gpsFix_str'] = 'No Fix'
+		elif image_data['gpsFix'] == 2:
+			image_data['gpsFix_str'] = '2D Fix'
+		elif image_data['gpsFix'] == 3:
+			image_data['gpsFix_str'] = '3D Fix'
+		elif image_data['gpsFix'] == 5:
+			image_data['gpsFix_str'] = 'Time Only'
+		else:
+			image_data['gpsFix_str'] = 'Unknown (%d)' % image_data['gpsFix']
+
+		# Produce a human-readable indication of the current dynamic model.
+		if image_data['dynamic_model'] == 0:
+			image_data['dynamic_model_str'] = 'Portable'
+		elif image_data['dynamic_model'] == 1:
+			image_data['dynamic_model_str'] = 'Not Used'
+		elif image_data['dynamic_model'] == 2:
+			image_data['dynamic_model_str'] = 'Stationary'
+		elif image_data['dynamic_model'] == 3:
+			image_data['dynamic_model_str'] = 'Pedestrian'
+		elif image_data['dynamic_model'] == 4:
+			image_data['dynamic_model_str'] = 'Automotive'
+		elif image_data['dynamic_model'] == 5:
+			image_data['dynamic_model_str'] = 'Sea'
+		elif image_data['dynamic_model'] == 6:
+			image_data['dynamic_model_str'] = 'Airborne 1G'
+		elif image_data['dynamic_model'] == 7:
+			image_data['dynamic_model_str'] = 'Airborne 2G'
+		elif image_data['dynamic_model'] == 8:
+			image_data['dynamic_model_str'] = 'Airborne 4G'
+		else:
+			image_data['dynamic_model_str'] = 'Unknown'
+
+		image_data['sys_status'] 	= data[16]
+		image_data['sys_error']	= data[17]
+		image_data['sys_cal'] 	= data[18]
+		image_data['gyro_cal'] 	= data[19]
+		image_data['accel_cal'] 	= data[20]
+		image_data['magnet_cal'] 	= data[21]
+		image_data['temp'] 		= data[22]
+
+		image_data['euler_heading'] = data[23]
+		image_data['euler_roll'] = data[24]
+		image_data['euler_pitch'] = data[25]
+
+		image_data['quaternion_x'] = data[26]
+		image_data['quaternion_y'] = data[27]
+		image_data['quaternion_z'] = data[28]
+		image_data['quaternion_w'] = data[29]
+
+		image_data['error'] = 'None'
+
+		return image_data
+
+	except:
+		traceback.print_exc()
+		print(packet)
+		return {'error': 'Could not decode Image telemetry packet.'}
+
 	# SHSSP Code goes here.
 
 	return {'error': "Image Telemetry: Not Implemented."}
 
 def image_telemetry_string(packet):
 	""" Produce a String representation of an Image Telemetry packet"""
-	
-	return "Image Telemetry: Not Implemented Yet."
+
+	image_data = image_telemetry_decoder(packet)
+
+	# Check if there was a decode error. If not, produce a string.
+	if image_data['error'] != 'None':
+		return "Image Telemetry: ERROR Could not decode."
+	else:
+		image_data_string = "Image Telemetry: %s ID #%d, %s Lat/Lon: %.5f,%.5f Alt: %d m Fix: %s Euler: (%.1f,%.1f,%.1f)" % (
+			image_data['callsign'],
+			image_data['image_id'],
+			image_data['timestamp'],
+			image_data['latitude'],
+			image_data['longitude'],
+			image_data['altitude'],
+			image_data['gpsFix_str'],
+			image_data['euler_heading'],
+			image_data['euler_roll'],
+			image_data['euler_pitch'],
+			)
+
+		return image_data_string

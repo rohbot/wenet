@@ -68,6 +68,7 @@ class PacketTX(object):
 
 	# Internal counter for text messages.
 	text_message_count = 0
+	image_telem_count = 0
 
 	# WARNING: 115200 baud is ACTUALLY 115386.834 baud, as measured using a freq counter.
 	def __init__(self,
@@ -290,14 +291,35 @@ class PacketTX(object):
 		orientation_telemetry_decoder
 
 		"""
+		try:
+			orientation_packet = struct.pack(">BHIBBBBBBBbfffffff",
+				2,	# Packet ID for the Orientation Telemetry Packet.
+				week,
+				int(iTOW*1000),	# Convert the GPS week value to milliseconds, and cast to an int.
+				leapS,
+				orientation_data['sys_status'],
+				orientation_data['sys_error'],
+				orientation_data['sys_cal'],
+				orientation_data['gyro_cal'],
+				orientation_data['accel_cal'],
+				orientation_data['magnet_cal'],
+				orientation_data['temp'],
+				orientation_data['euler_heading'],
+				orientation_data['euler_roll'],
+				orientation_data['euler_pitch'],
+				orientation_data['quaternion_x'],
+				orientation_data['quaternion_y'],
+				orientation_data['quaternion_z'],
+				orientation_data['quaternion_w']
+				)
 
-		# SHSSP Code goes here...
-
-		self.transmit_text_message("Orientation Telemetry Not Implemented.")
+			self.queue_telemetry_packet(orientation_packet)
+		except:
+			traceback.print_exc()
 
 		return
 
-	def transmit_image_telemetry(self, gps_data, orientation_data, image_id):
+	def transmit_image_telemetry(self, gps_data, orientation_data, image_id=0, callsign='N0CALL'):
 		""" Generate and Transmit an Image telemetry packet.
 
 		Keyword Arguments:
@@ -317,10 +339,46 @@ class PacketTX(object):
 		image_telemetry_decoder
 
 		"""
+		self.image_telem_count = (self.image_telem_count+1)%65536
 
-		# SHSSP Code goes here...
-		self.transmit_text_message("Image Telemetry Not Implemented.")
-		return
+		try:
+			image_packet = struct.pack(">BH7pBHIBffffffBBBBBBBBBbfffffff",
+				0x54,	# Packet ID for the GPS Telemetry Packet.
+				self.image_telem_count,
+				callsign,
+				image_id,
+				gps_data['week'],
+				int(gps_data['iTOW']*1000),	# Convert the GPS week value to milliseconds, and cast to an int.
+				gps_data['leapS'],
+				gps_data['latitude'],
+				gps_data['longitude'],
+				gps_data['altitude'],
+				gps_data['ground_speed'],
+				gps_data['heading'],
+				gps_data['ascent_rate'],
+				gps_data['numSV'],
+				gps_data['gpsFix'],
+				gps_data['dynamic_model'],
+				orientation_data['sys_status'],
+				orientation_data['sys_error'],
+				orientation_data['sys_cal'],
+				orientation_data['gyro_cal'],
+				orientation_data['accel_cal'],
+				orientation_data['magnet_cal'],
+				orientation_data['temp'],
+				orientation_data['euler_heading'],
+				orientation_data['euler_roll'],
+				orientation_data['euler_pitch'],
+				orientation_data['quaternion_x'],
+				orientation_data['quaternion_y'],
+				orientation_data['quaternion_z'],
+				orientation_data['quaternion_w']
+				)
+
+			self.queue_telemetry_packet(image_packet)
+		except:
+			traceback.print_exc()
+
 
 
 
