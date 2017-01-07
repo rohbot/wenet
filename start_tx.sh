@@ -23,5 +23,9 @@ python init_rfm98w.py --frequency $TXFREQ
 # Note, this assumes there is a uBlox GPS available at /dev/ttyACM0
 python tx_picam_gps.py $MYCALL &
 
+# Start SHSSP-specific transmit script.
+# Needs a GPS connected, a BNO055 connected, and a PiCam and USB Webcam (Logitech C920)
+#python shssp.py &
+
 # If you don't want any GPS overlays, you can comment the above line and run:
 # python WenetPiCam.py $MYCALL &
