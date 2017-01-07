@@ -5,6 +5,11 @@
 import struct
 import traceback
 import datetime
+import crcmod
+import httplib
+import json
+from hashlib import sha256
+from base64 import b64encode
 
 WENET_IMAGE_UDP_PORT 		= 7890
 WENET_TELEMETRY_UDP_PORT 	= 7891
@@ -512,3 +517,99 @@ def image_telemetry_string(packet):
 			)
 
 		return image_data_string
+
+#
+# Habitat Uploader functions.
+#
+
+# CRC16 function for the above.
+def crc16_ccitt(data):
+    """
+    Calculate the CRC16 CCITT checksum of *data*.
+    
+    (CRC16 CCITT: start 0xFFFF, poly 0x1021)
+    """
+    crc16 = crcmod.predefined.mkCrcFun('crc-ccitt-false')
+    return hex(crc16(data))[2:].upper().zfill(4)
+
+
+def image_telemetry_habitat_string(packet):
+	""" Convert an Image Telemetry packet into a habitat-compatible string. """
+
+	image_data = image_telemetry_decoder(packet)
+
+	# Check if there was a decode error. If not, produce a string.
+	if image_data['error'] != 'None':
+		return "Image Telemetry: ERROR Could not decode."
+	else:
+		# Produce a timestamp suitable for use in the habitat upload string.
+		epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
+		elapsed = datetime.timedelta(days=(image_data['week']*7),seconds=(image_data['iTOW']+image_data['leapS']))
+		timestamp = epoch + elapsed
+		packet_time = timestamp.strftime("%H:%M:%S")
+
+		sentence = "$$%s,%d,%s,%.5f,%.5f,%d,%d,%d,%d,%.2f,%.2f,%.2f,%.5f,%.5f,%.5f,%.5f" % (
+			image_data['callsign'],
+			image_data['sequence_number'],
+			packet_time,
+			image_data['latitude'],
+			image_data['longitude'],
+			image_data['altitude'],
+			image_data['numSV'],
+			image_data['image_id'],
+			image_data['sys_cal'],
+			image_data['euler_heading'],
+			image_data['euler_roll'],
+			image_data['euler_pitch'],
+			image_data['quaternion_x'],
+			image_data['quaternion_y'],
+			image_data['quaternion_z'],
+			image_data['quaternion_w']
+			)
+
+		checksum = crc16_ccitt(sentence[2:])
+		habitat_upload_string = sentence + "*" + checksum + "\n"
+
+		return habitat_upload_string
+
+def image_telemetry_upload(packet, user_callsign="N0CALL"):
+	""" Upload an image telemetry packet to habitat. """
+
+    sentence = image_telemetry_habitat_string(packet)
+
+    sentence_b64 = b64encode(sentence)
+
+    date = datetime.datetime.utcnow().isoformat("T") + "Z"
+
+    data = {
+        "type": "payload_telemetry",
+        "data": {
+            "_raw": sentence_b64
+            },
+        "receivers": {
+            user_callsign: {
+                "time_created": date,
+                "time_uploaded": date,
+                },
+            },
+    }
+    try:
+        c = httplib.HTTPConnection("habitat.habhub.org",timeout=5)
+        c.request(
+            "PUT",
+            "/habitat/_design/payload_telemetry/_update/add_listener/%s" % sha256(sentence_b64).hexdigest(),
+            json.dumps(data),  # BODY
+            {"Content-Type": "application/json"}  # HEADERS
+            )
+
+        response = c.getresponse()
+        return "Image Telemetry: Uploaded to Habitat Successfuly."
+    except Exception as e:
+        return "Failed to upload to Habitat: %s" % (str(e))
+
+
+
+
+
+
+

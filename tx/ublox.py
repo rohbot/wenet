@@ -915,7 +915,7 @@ class UBloxGPS(object):
         'iTOW':         0,      # GPS Seconds in week.
         'leapS':        0,      # GPS Leap Seconds (Difference between GPS time and UTC time)
         'timestamp':    " ",    # ISO-8601 Compliant Date-code (generate by Python's datetime.isoformat() function)
-        'dynamic_model': 0      # Current dynamic model in use.
+        'dynamic_model': 20      # Current dynamic model in use.
     }
     # Lock files for writing and reading to the internal state dictionary.
     state_writelock = False
@@ -1129,6 +1129,10 @@ class UBloxGPS(object):
                 if self.rx_counter % 20 == 0:
                     # A message with only 0x00 in the payload field is a poll.
                     self.gps.send_message(CLASS_CFG, MSG_CFG_NAV5,'\x00')
+
+                # Additional checks to be sure we're in the right dynamic model.
+                if self.rx_counder % 40 == 0:
+                    self.gps.set_preferred_dynamic_model(self.dynamic_model)
 
                 # Send data to the callback function.
                 callback_thread = Thread(target=self.gps_callback)
