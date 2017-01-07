@@ -22,7 +22,7 @@ class WENET_PACKET_TYPES:
 class WENET_PACKET_LENGTHS:
 	GPS_TELEMETRY 		= 35
 	ORIENTATION_TELEMETRY = 43
-	IMAGE_TELEMETRY = 71
+	IMAGE_TELEMETRY = 80
 
 def decode_packet_type(packet):
 	# Convert packet to a list of integers before parsing.
@@ -402,21 +402,23 @@ def image_telemetry_decoder(packet):
 	# Wrap the next bit in exception handling.
 	try:
 		# Unpack the packet into a list.
-		data = struct.unpack('>BBHIBffffffBBBBBBBBBbfffffff', packet)
+		data = struct.unpack('>BH7pBHIBffffffBBBBBBBBBbfffffff', packet)
 
-		image_data['image_id'] = data[1]
-		image_data['week'] 	= data[2]
-		image_data['iTOW'] 	= data[3]/1000.0 # iTOW provided as milliseconds, convert to seconds.
-		image_data['leapS'] 	= data[4]
-		image_data['latitude'] = data[5]
-		image_data['longitude'] = data[6]
-		image_data['altitude'] = data[7]
-		image_data['ground_speed'] = data[8]
-		image_data['heading'] = data[9]
-		image_data['ascent_rate'] = data[10]
-		image_data['numSV'] 	= data[11]
-		image_data['gpsFix']	= data[12]
-		image_data['dynamic_model'] = data[13]
+		image_data['sequence_number'] = data[1]
+		image_data['callsign'] = data[2]
+		image_data['image_id'] = data[3]
+		image_data['week'] 	= data[4]
+		image_data['iTOW'] 	= data[5]/1000.0 # iTOW provided as milliseconds, convert to seconds.
+		image_data['leapS'] 	= data[6]
+		image_data['latitude'] = data[7]
+		image_data['longitude'] = data[8]
+		image_data['altitude'] = data[9]
+		image_data['ground_speed'] = data[10]
+		image_data['heading'] = data[11]
+		image_data['ascent_rate'] = data[12]
+		image_data['numSV'] 	= data[13]
+		image_data['gpsFix']	= data[14]
+		image_data['dynamic_model'] = data[15]
 
 		# Perform some post-processing on the data, to make some of the fields easier to read.
 
@@ -457,22 +459,22 @@ def image_telemetry_decoder(packet):
 		else:
 			image_data['dynamic_model_str'] = 'Unknown'
 
-		image_data['sys_status'] 	= data[14]
-		image_data['sys_error']	= data[15]
-		image_data['sys_cal'] 	= data[16]
-		image_data['gyro_cal'] 	= data[17]
-		image_data['accel_cal'] 	= data[18]
-		image_data['magnet_cal'] 	= data[19]
-		image_data['temp'] 		= data[20]
+		image_data['sys_status'] 	= data[16]
+		image_data['sys_error']	= data[17]
+		image_data['sys_cal'] 	= data[18]
+		image_data['gyro_cal'] 	= data[19]
+		image_data['accel_cal'] 	= data[20]
+		image_data['magnet_cal'] 	= data[21]
+		image_data['temp'] 		= data[22]
 
-		image_data['euler_heading'] = data[21]
-		image_data['euler_roll'] = data[22]
-		image_data['euler_pitch'] = data[23]
+		image_data['euler_heading'] = data[23]
+		image_data['euler_roll'] = data[24]
+		image_data['euler_pitch'] = data[25]
 
-		image_data['quaternion_x'] = data[24]
-		image_data['quaternion_y'] = data[25]
-		image_data['quaternion_z'] = data[26]
-		image_data['quaternion_w'] = data[27]
+		image_data['quaternion_x'] = data[26]
+		image_data['quaternion_y'] = data[27]
+		image_data['quaternion_z'] = data[28]
+		image_data['quaternion_w'] = data[29]
 
 		image_data['error'] = 'None'
 
@@ -496,7 +498,8 @@ def image_telemetry_string(packet):
 	if image_data['error'] != 'None':
 		return "Image Telemetry: ERROR Could not decode."
 	else:
-		image_data_string = "Image Telemetry: ID #%d, %s Lat/Lon: %.5f,%.5f Alt: %d m Fix: %s Euler: (%.1f,%.1f,%.1f)" % (
+		image_data_string = "Image Telemetry: %s ID #%d, %s Lat/Lon: %.5f,%.5f Alt: %d m Fix: %s Euler: (%.1f,%.1f,%.1f)" % (
+			image_data['callsign'],
 			image_data['image_id'],
 			image_data['timestamp'],
 			image_data['latitude'],

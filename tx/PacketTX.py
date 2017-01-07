@@ -68,6 +68,7 @@ class PacketTX(object):
 
 	# Internal counter for text messages.
 	text_message_count = 0
+	image_telem_count = 0
 
 	# WARNING: 115200 baud is ACTUALLY 115386.834 baud, as measured using a freq counter.
 	def __init__(self,
@@ -318,7 +319,7 @@ class PacketTX(object):
 
 		return
 
-	def transmit_image_telemetry(self, gps_data, orientation_data, image_id):
+	def transmit_image_telemetry(self, gps_data, orientation_data, image_id=0, callsign='N0CALL'):
 		""" Generate and Transmit an Image telemetry packet.
 
 		Keyword Arguments:
@@ -338,10 +339,13 @@ class PacketTX(object):
 		image_telemetry_decoder
 
 		"""
+		self.image_telem_count = (self.image_telem_count+1)%65536
 
 		try:
-			image_packet = struct.pack(">BBHIBffffffBBBBBBBBBbfffffff",
+			image_packet = struct.pack(">BH7pBHIBffffffBBBBBBBBBbfffffff",
 				0x54,	# Packet ID for the GPS Telemetry Packet.
+				self.image_telem_count,
+				callsign,
 				image_id,
 				gps_data['week'],
 				int(gps_data['iTOW']*1000),	# Convert the GPS week value to milliseconds, and cast to an int.
