@@ -319,7 +319,7 @@ class PacketTX(object):
 
 		return
 
-	def transmit_image_telemetry(self, gps_data, orientation_data, image_id=0, callsign='N0CALL'):
+	def transmit_image_telemetry(self, gps_data, orientation_data, image_id=0, callsign='N0CALL', repeats=1):
 		""" Generate and Transmit an Image telemetry packet.
 
 		Keyword Arguments:
@@ -375,7 +375,7 @@ class PacketTX(object):
 				orientation_data['quaternion_w']
 				)
 
-			self.queue_telemetry_packet(image_packet)
+			self.queue_telemetry_packet(image_packet, repeats=repeats)
 		except:
 			traceback.print_exc()
 

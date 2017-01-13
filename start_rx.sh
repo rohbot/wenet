@@ -9,6 +9,12 @@
 # Set CHANGEME to your callsign.
 MYCALL=CHANGEME
 
+# Frequency:
+# Default Wenet RX Frequency (also used for SHSSP1 in Jan 2017)
+RXFREQ=440980000
+# Secondary downlink frequency, to be used on SHSSP2 in Jan 2017
+#RXFREQ=446280000
+
 # Change the following path as appropriate.
 # If running this from a .desktop file, you may need to set an absolute path here
 # i.e. /home/username/wenet/rx/
@@ -26,7 +32,7 @@ python TelemetryGUI.py $MYCALL &
 # rtl_biast -b 1 
 
 # Start up the receive chain. 
-rtl_sdr -s 921416 -f 440980000 -g 35 - | csdr convert_u8_f | \
+rtl_sdr -s 921416 -f $RXFREQ -g 35 - | csdr convert_u8_f | \
 csdr bandpass_fir_fft_cc 0.05 0.45 0.05 | csdr realpart_cf | \
 csdr gain_ff 0.5 | csdr convert_f_s16 | \
 ./fsk_demod 2XS 8 921416 115177 - - S 2> >(python fskdemodgui.py --wide) | \
