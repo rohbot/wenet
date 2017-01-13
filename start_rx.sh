@@ -13,7 +13,7 @@ MYCALL=CHANGEME
 # Default Wenet RX Frequency (also used for SHSSP1 in Jan 2017)
 RXFREQ=440980000
 # Secondary downlink frequency, to be used on SHSSP2 in Jan 2017
-#RXFREQ=446280000
+#RXFREQ=443280000
 
 # Change the following path as appropriate.
 # If running this from a .desktop file, you may need to set an absolute path here

@@ -268,7 +268,7 @@ def imageTelemetryHandler(packet):
 	timestamp = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
 	
 	if upload_ok:
-		uploadFrameHabitatStatus.setText("Last Upload: %s" % datetime.utcnow().strftime("%H:%M:%S"))
+		uploadFrameHabitatStatus.setText("Last Upload: %s" % datetime.datetime.utcnow().strftime("%H:%M:%S"))
 		console.appendPlainText("%s \tHabitat Upload: OK")
 	else:
 		uploadFrameHabitatStatus.setText("Last Upload: Failed!")
