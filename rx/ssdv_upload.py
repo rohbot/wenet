@@ -6,7 +6,7 @@
 #
 #
 
-import base64, requests, datetime, os, glob, time
+import base64, requests, datetime, os, glob, time, traceback
 
 ssdv_url = "http://ssdv.habhub.org/api/v0/packets"
 
@@ -84,23 +84,30 @@ def ssdv_dir_watcher(glob_string="./rx_images/*.bin", check_time = 0.5, callsign
 	print("Starting directory watch...")
 
 	while True:
-		time.sleep(check_time)
+		try:
+			time.sleep(check_time)
 
-		# Check directory again.
-		rx_images_temp = glob.glob(glob_string)
-		if len(rx_images_temp) == 0:
+			# Check directory again.
+			rx_images_temp = glob.glob(glob_string)
+			if len(rx_images_temp) == 0:
+				continue
+			# Sort list. Image filenames are timestamps, so the last element in the array will be the latest image.
+			rx_images_temp.sort()
+			# Is there an new image?
+			if rx_images_temp[-1] not in rx_images:
+				# New image! Wait a little bit in case we're still writing to that file, then upload.
+				time.sleep(0.5)
+				filename = rx_images_temp[-1]
+				print("Found new image! Uploading: %s " % filename)
+				ssdv_upload_file(filename,callsign=callsign,blocksize=256)
+
+			rx_images = rx_images_temp
+		except KeyboardInterrupt:
+			sys.exit(0)
+		except:
+			traceback.print_exc()
 			continue
-		# Sort list. Image filenames are timestamps, so the last element in the array will be the latest image.
-		rx_images_temp.sort()
-		# Is there an new image?
-		if rx_images_temp[-1] not in rx_images:
-			# New image! Wait a little bit in case we're still writing to that file, then upload.
-			time.sleep(0.5)
-			filename = rx_images_temp[-1]
-			print("Found new image! Uploading: %s " % filename)
-			ssdv_upload_file(filename,callsign=callsign,blocksize=256)
 
-		rx_images = rx_images_temp
 
 
 
@@ -115,5 +122,6 @@ if __name__ == '__main__':
 		sys.exit(1)
 
 	print("Using callsign: %s" % callsign)
+
 
 	ssdv_dir_watcher(callsign=callsign)
