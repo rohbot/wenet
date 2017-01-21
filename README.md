@@ -88,6 +88,6 @@ On my flights the centre frequency of the transmitter is around 441.2 MHz, so I 
 It should be quite possible to use other SDRs (i.e. the AirSpy) with appropriate tweaking of the filter and source sample type conversion parameters. 
 
 ## RX Tips.
-* It is highly recommended to use a preamplifier in front of your RTLSDR to lower the overall noise figure of the system. With a NooElec RTLSDR (R820T2 Tuner) and a [HabAmp](https://store.uputronics.com/index.php?route=product/product&product_id=53), we were able to acheive a Minimum-Detectable-Signal (MDS - which we defined as the point where we get no packet errors) of around -112 dBm.
+* It is highly recommended to use a preamplifier in front of your RTLSDR to lower the overall noise figure of the system. With a NooElec RTLSDR (R820T2 Tuner) and a [HabAmp](https://store.uputronics.com/index.php?route=product/product&product_id=53), we were able to achieve a Minimum-Detectable-Signal (MDS - which we defined as the point where we get no packet errors) of around -112 dBm.
 * If needed, the transmit bitrate can be slowed down by editing the defaults in tx_picam.py. You will then have to determine the appropriate parameters for fsk_demod and the preceding filtering/resampling chain.
 
