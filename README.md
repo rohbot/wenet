@@ -7,7 +7,7 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 * v0.1 - First test flight on Horus 37, no FEC. Read more about that here: http://rfhead.net/?p=637
 * v0.2 - Second test flight on Horus 39, with LDPC FEC enabled. Read more here: http://www.rowetel.com/?p=5344
 * v0.3 - Third test flight on Horus 40 - 2nd Jan 2017. Added GPS overlay support. Read more here: http://www.areg.org.au/archives/206627
-* v0.4 - SHSSP 2017 Launches (Horus 41 & 42) - 22nd Jan 2017. Added IMU and simultaneous capture from two cameras (Visible and Near-IR). Two payloads were flown, each with two cameras. A third payload (same as on Horus 40) was also flown, which captured the image below.
+* v0.4 - SHSSP 2017 Launches (Horus 41 & 42) - 22nd Jan 2017. Added IMU and simultaneous capture from two cameras (Visible and Near-IR). Two payloads were flown, each with two cameras. A third payload (same as on Horus 40) was also flown, which captured the image below. Read more here: http://www.areg.org.au/archives/206739
 
 ![Image downlinked via Wenet on Horus 42](http://rfhead.net/temp/horus_42_small.jpg)
 
