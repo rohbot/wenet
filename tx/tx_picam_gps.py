@@ -12,6 +12,7 @@ import ublox
 import argparse
 import time
 import os
+import subprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument("callsign", default="N0CALL", help="Payload Callsign")
@@ -38,10 +39,11 @@ time.sleep(1)
 
 # Initialise a couple of global variables.
 max_altitude = 0
+system_time_set = False
 
 def handle_gps_data(gps_data):
 	""" Handle GPS data passed to us from the UBloxGPS instance """
-	global max_altitude, tx
+	global max_altitude, tx, system_time_set
 
 	# Immediately generate and transmit a GPS packet.
 	tx.transmit_gps_telemetry(gps_data)
@@ -49,6 +51,17 @@ def handle_gps_data(gps_data):
 	# If we have GPS fix, update the max altitude field.
 	if (gps_data['altitude'] > max_altitude) and (gps_data['gpsFix'] == 3):
 		max_altitude = gps_data['altitude']
+
+	# If we have GPS lock, set the system clock to it. (Only do this once.)
+	if (gps_data['gpsFix'] == 3) and not system_time_set:
+		dt = gps_data['datetime']
+		try:
+			subprocess.call(['date', '-s', '{:}'.format(dt.strftime('%Y/%m/%d %H:%M:%S'))], shell=True)
+			tx.transmit_text_message("GPS Debug: System clock set to GPS time %s" % gps_data['timestamp'])
+			system_time_set = True
+		except:
+			tx.transmit_text_message("GPS Debug: Attempt to set system clock failed!")
+
 
 
 # Try and start up the GPS rx thread.
@@ -74,7 +87,8 @@ def post_process_image(filename):
 	if gps != None:
 		gps_state = gps.read_state()
 
-		# Send GPS telemetry packet here.
+		# Format time
+		short_time = gps_state['datetime'].strftime("%Y-%m-%d %H:%M:%S")
 
 		# Construct string which we will add onto the image.
 		if gps_state['numSV'] < 3:
@@ -82,7 +96,9 @@ def post_process_image(filename):
 			# TODO: Use the GPS fix status values here instead.
 			gps_string = "No GPS Lock"
 		else:
-			gps_string = "Lat: %.5f   Lon: %.5f  Alt: %dm (%dm)  Speed: H %03.1f kph  V %02.1f m/s" % (gps_state['latitude'],
+			gps_string = "%s Lat: %.5f   Lon: %.5f  Alt: %dm (%dm)  Speed: H %03.1f kph  V %02.1f m/s" % (
+				short_time,
+				gps_state['latitude'],
 				gps_state['longitude'],
 				int(gps_state['altitude']),
 				int(max_altitude),

@@ -915,6 +915,7 @@ class UBloxGPS(object):
         'iTOW':         0,      # GPS Seconds in week.
         'leapS':        0,      # GPS Leap Seconds (Difference between GPS time and UTC time)
         'timestamp':    " ",    # ISO-8601 Compliant Date-code (generate by Python's datetime.isoformat() function)
+        'datetime': None,       # Fix time as a datetime object.
         'dynamic_model': 20      # Current dynamic model in use.
     }
     # Lock files for writing and reading to the internal state dictionary.
@@ -1040,15 +1041,15 @@ class UBloxGPS(object):
         # Grab latest state.
         latest_state = self.read_state()
 
+        if self.callback != None:
+            self.callback(latest_state)
+
         # Write into the log file, if we are using one.
         if self.log_file != None:
+            # Quick hack to stop json trying to serialise a datetime object.
+            latest_state['datetime'] = latest_state['timestamp']
             self.log_file.write(json.dumps(latest_state) + '\n')
 
-        # If we don't have a callback function to use, return immediately.
-        if self.callback == None:
-            return
-        else:
-            self.callback(latest_state)
 
     # Utility function to convert GPS time to UTC time.
     def weeksecondstoutc(self, gpsweek, gpsseconds, leapseconds):
@@ -1056,7 +1057,7 @@ class UBloxGPS(object):
         epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
         elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds+leapseconds))
         timestamp = epoch + elapsed
-        return timestamp.isoformat()
+        return (timestamp.isoformat(), timestamp)
 
     rx_running = True
     rx_counter = 0
@@ -1120,7 +1121,9 @@ class UBloxGPS(object):
                 self.write_state('week',msg.week)
                 self.write_state('iTOW', msg.iTOW*1.0e-3)
                 self.write_state('leapS', msg.leapS)
-                self.write_state('timestamp', self.weeksecondstoutc(msg.week, msg.iTOW*1.0e-3, msg.leapS))
+                (time_isotime, time_datetime) = self.weeksecondstoutc(msg.week, msg.iTOW*1.0e-3, msg.leapS)
+                self.write_state('timestamp', time_isotime)
+                self.write_state('datetime', time_datetime)
                 # We now have a 'complete' GPS solution, pass it onto a callback,
                 # if we were given one when we were initialised.
                 self.rx_counter += 1

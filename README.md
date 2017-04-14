@@ -8,13 +8,14 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 * v0.2 - Second test flight on Horus 39, with LDPC FEC enabled. Read more here: http://www.rowetel.com/?p=5344
 * v0.3 - Third test flight on Horus 40 - 2nd Jan 2017. Added GPS overlay support. Read more here: http://www.areg.org.au/archives/206627
 * v0.4 - SHSSP 2017 Launches (Horus 41 & 42) - 22nd Jan 2017. Added IMU and simultaneous capture from two cameras (Visible and Near-IR). Two payloads were flown, each with two cameras. A third payload (same as on Horus 40) was also flown, which captured the image below. Read more here: http://www.areg.org.au/archives/206739
+* v0.5 - Minor updates. Flown on Horus 43 and 44.
 
 ![Image downlinked via Wenet on Horus 42](http://rfhead.net/temp/horus_42_small.jpg)
 
 The above image was captured on Horus 42, and downlinked via Wenet. The original downlinked resolution was 1920x1440, and has since been re-sized. The full resolution version is available here: http://rfhead.net/temp/horus_42_full.jpg
 
 ## Ubuntu 16.04 RX
-* There is now a guide on how to set up a RX station using Ubuntu within the INSTALL_ubuntu file
+* There is now a guide on how to set up a RX station using Ubuntu within the INSTALL_ubuntu file. This receive approach does not require GNURadio.
 
 ## WARNING: The below information is outdated (I'll update it eventually...). Use the above installation guide.
 
@@ -30,7 +31,7 @@ The above image was captured on Horus 42, and downlinked via Wenet. The original
 * `rx/rx_ssdv.py` - Reads in received packets (256 byte SSDV frames) via stdin, and decodes them to JPEGs. Also informs other processes (via UDP broadcast) of new ssdv and telemetry data.
 * `rx/rx_gui.py` - Displays last received image, as commanded by rx_ssdv.py via UDP.
 * `tx/init_rfm22b.py` - Set RFM22B (attached via SPI to the RPi) into Direct-Asynchronous mode.
-* `tx/init_rfm98w.py` - Set RFM98W (attached via SPI to the RPi) into Direct-Asynchronous mode. 
+* `tx/init_rfm98w.py` - Set RFM98W (attached via SPI to the RPi) into Direct-Asynchronous mode. Note that this requires pySX127x from https://github.com/darksidelemm/pySX127x
 * `tx_picam_gps.py` - Captures pictures using the PiCam, overlays GPS data and transmits them.
 
 ## Testing Scripts
@@ -51,7 +52,7 @@ The above image was captured on Horus 42, and downlinked via Wenet. The original
 * Run either `python WenetPiCam.py (might need sudo to access camera & SPI) or `python tx_test_images.py` on the transmitter Raspberry Pi. There's also a start_tx.sh bash script which also sets up a RFM22B or RFM98W. I run this bash script from /etc/rc.local so it starts on boot.
 
 #### IMPORTANT NOTES
-* While the transit code requests an output baud rate of 115200 baud from the RPi's UART, the acheived baud rate (due to clock divisors) on a RPi A+ is actually 115386.843 baud (measured using a frequency counter). All of the resampling within the receive chain had to be adjusted accordingly, which means CPU-intensive fractional decimators.
+* While the transmit code requests an output baud rate of 115200 baud from the RPi's UART, the acheived baud rate (due to clock divisors) on a RPi A+ is actually 115386.843 baud (measured using a frequency counter). All of the resampling within the receive chain had to be adjusted accordingly, which means CPU-intensive fractional decimators.
  * Baud rates on other RPi models may be different - best to measure and check!
 * Apparently the newer Raspberry Pi's (or possibly just a newer version of Raspbian) use the alternate UART hardware by default, which has a smaller transmit buffer. This may result in gaps between bytes, which will likely throw the rx timing estimation off.
 

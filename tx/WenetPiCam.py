@@ -134,7 +134,7 @@ class WenetPiCam(object):
 		largest_pic = pic_list[pic_sizes.index(max(pic_sizes))]
 
 		# Copy best image to target filename.
-		self.debug_message("Copying image to storage.")
+		self.debug_message("Copying image to storage with filename %s" % filename)
 		os.system("cp %s %s" % (largest_pic, filename))
 		# Clean up temporary images.
 		os.system("rm %s_*.jpg" % self.temp_filename_prefix)
