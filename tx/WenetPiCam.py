@@ -227,8 +227,8 @@ class WenetPiCam(object):
 					self.debug_message("Running Image Post-Processing")
 					post_process_ptr(capture_filename)
 				except:
-					traceback.print_exc()
-					self.debug_message("Image Post-Processing Failed.")
+					error_str = traceback.format_exc()
+					self.debug_message("Image Post-Processing Failed: %s" % error_str)
 
 			# SSDV'ify the image.
 			ssdv_filename = self.ssdvify(capture_filename, image_id=image_id)

@@ -965,6 +965,7 @@ class UBloxGPS(object):
         # Open log file, if one has been given.
         if log_file != None:
             self.log_file = open(log_file,'a')
+            self.log_file.write("Opened Log File.\n")
         else:
             self.log_file = None
 
