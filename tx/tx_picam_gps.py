@@ -13,6 +13,7 @@ import argparse
 import time
 import os
 import subprocess
+import traceback
 
 parser = argparse.ArgumentParser()
 parser.add_argument("callsign", default="N0CALL", help="Payload Callsign")
@@ -31,7 +32,7 @@ print("Using Callsign: %s" % callsign)
 
 
 # Start up Wenet TX.
-tx = PacketTX.PacketTX(serial_port=args.txport, serial_baud=args.baudrate, callsign=callsign)
+tx = PacketTX.PacketTX(serial_port=args.txport, serial_baud=args.baudrate, callsign=callsign, log_file=debug.log)
 tx.start_tx()
 
 # Sleep for a second to let the transmitter fire up.
@@ -84,28 +85,33 @@ def post_process_image(filename):
 	global gps, max_altitude, args, tx
 
 	# Try and grab current GPS data snapshot
-	if gps != None:
-		gps_state = gps.read_state()
+	try:
+		if gps != None:
+			gps_state = gps.read_state()
 
-		# Format time
-		short_time = gps_state['datetime'].strftime("%Y-%m-%d %H:%M:%S")
+			# Format time
+			short_time = gps_state['datetime'].strftime("%Y-%m-%d %H:%M:%S")
 
-		# Construct string which we will add onto the image.
-		if gps_state['numSV'] < 3:
-			# If we don't have enough sats for a lock, don't display any data.
-			# TODO: Use the GPS fix status values here instead.
-			gps_string = "No GPS Lock"
+			# Construct string which we will add onto the image.
+			if gps_state['numSV'] < 3:
+				# If we don't have enough sats for a lock, don't display any data.
+				# TODO: Use the GPS fix status values here instead.
+				gps_string = "No GPS Lock"
+			else:
+				gps_string = "%s Lat: %.5f   Lon: %.5f  Alt: %dm (%dm)  Speed: H %03.1f kph  V %02.1f m/s" % (
+					short_time,
+					gps_state['latitude'],
+					gps_state['longitude'],
+					int(gps_state['altitude']),
+					int(max_altitude),
+					gps_state['ground_speed'],
+					gps_state['ascent_rate'])
 		else:
-			gps_string = "%s Lat: %.5f   Lon: %.5f  Alt: %dm (%dm)  Speed: H %03.1f kph  V %02.1f m/s" % (
-				short_time,
-				gps_state['latitude'],
-				gps_state['longitude'],
-				int(gps_state['altitude']),
-				int(max_altitude),
-				gps_state['ground_speed'],
-				gps_state['ascent_rate'])
-	else:
-		gps_string = "No GPS"
+			gps_string = "No GPS"
+	except:
+		error_str = traceback.format_exc()
+		self.debug_message("GPS Data Access Failed: %s" % error_str)
+		gps_string = "GPS Failure"
 
 	# Build up our imagemagick 'convert' command line
 	overlay_str = "convert %s -gamma 0.8 -font Helvetica -pointsize 30 -gravity North " % filename 
