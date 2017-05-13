@@ -57,9 +57,12 @@ def handle_gps_data(gps_data):
 	if (gps_data['gpsFix'] == 3) and not system_time_set:
 		dt = gps_data['datetime']
 		try:
-			new_time = dt.strftime('%Y/%m/%d %H:%M:%S')
-			subprocess.call(['date', '-s', '\"{:}\"'.format(new_time)], shell=True)
-			tx.transmit_text_message("GPS Debug: System clock set to GPS time %s" % new_time)
+			new_time = dt.strftime('%Y-%m-%d %H:%M:%S')
+			ret_code = os.system("timedatectl set-time \"%s\"" % new_time)
+			if ret_code == 0:
+				tx.transmit_text_message("GPS Debug: System clock set to GPS time %s" % new_time)
+			else:
+				tx.transmit_text_message("GPS Debug: Attempt to set system clock failed!")
 			system_time_set = True
 		except:
 			tx.transmit_text_message("GPS Debug: Attempt to set system clock failed!")
