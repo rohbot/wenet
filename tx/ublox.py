@@ -957,6 +957,7 @@ class UBloxGPS(object):
                         fudge 127.127.28.2 time1 0.09 refid PYTH stratum 2
                       Adjust the '0.09' in the fudge line to compensate for processing delays (which are hopefully constant).
                       This GPS time sync should be good to maybe +/- 50 mS or so.
+                      This requires the ntpdshm python library: https://pypi.python.org/pypi/ntpdshm/0.2.1
 
 
         """
