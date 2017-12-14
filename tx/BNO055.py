@@ -763,7 +763,7 @@ class WenetBNO055(object):
         port='/dev/bno',
         update_rate_hz = 10,
         callback = None,
-        callback_decimation = 10,
+        callback_decimation = 1,
         debug_ptr = None,
         log_file = None
         ):
@@ -910,7 +910,7 @@ class WenetBNO055(object):
                 # Write into state dictionary as a block, so users can't request a half-updated state dict.
                 self.state_blockwrite = True # This locks the state writelock on.
 
-                self.write_state('timestamp',datetime.datetime.now().isoformat())
+                self.write_state('timestamp',datetime.datetime.utcnow().isoformat())
                 self.write_state('sys_status',status)
                 self.write_state('sys_error',error)
                 self.write_state('sys_cal', sys)
