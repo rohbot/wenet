@@ -12,7 +12,7 @@ Added UBloxGPS abstraction layer class for use with Wenet TX system.
 import struct
 import datetime
 from threading import Thread
-import time, os, json
+import time, os, json, calendar, math
 
 # protocol constants
 PREAMBLE1 = 0xb5
@@ -927,7 +927,8 @@ class UBloxGPS(object):
             update_rate_ms=500,
             dynamic_model=DYNAMIC_MODEL_AIRBORNE1G,
             debug_ptr = None,
-            log_file = None):
+            log_file = None,
+            ntpd_update = False):
 
         """ Initialise a UBloxGPS Abstraction layer object.
         
@@ -950,6 +951,14 @@ class UBloxGPS(object):
         log_file:   An optional filename in which to log GPS state data. Data will be stored as lines of JSON data.
                     Data is written whenever the gps_callback function is called.
 
+        ntpd_update:  If set to true, use ntpdshm to push time information into NTPD via the Shared Memory Interface.
+                      This uses shared memory 'unit 2', and so the following lines need to be added to /etc/ntp.conf:
+                        server 127.127.28.2 minpoll 4 maxpoll 4
+                        fudge 127.127.28.2 time1 0.09 refid PYTH stratum 2
+                      Adjust the '0.09' in the fudge line to compensate for processing delays (which are hopefully constant).
+                      This GPS time sync should be good to maybe +/- 50 mS or so.
+
+
         """
 
         # Copy supplied values.
@@ -960,6 +969,7 @@ class UBloxGPS(object):
         self.update_rate_ms = update_rate_ms
         self.debug_ptr = debug_ptr
         self.callback = callback
+        self.ntpd_shm = None
 
 
         # Open log file, if one has been given.
@@ -972,6 +982,19 @@ class UBloxGPS(object):
         # Attempt to inialise.
         self.gps = UBlox(self.port, self.baudrate, self.timeout)
         self.setup_ublox()
+
+        if ntpd_update:
+            try:
+                # Attempt to import and set up a NTPD SHM interface.
+                import ntpdshm
+                self.ntpd_shm = ntpdshm.NtpdShm(unit=2)
+                self.ntpd_shm.mode = 0
+                self.ntpd_shm.precision = -5
+                self.ntpd_shm.leap = 0
+                self.debug_message("Setup NTPD Interface OK")
+            except:
+                self.ntpd_shm = None
+                self.debug_message("Failed to start NTPD Interface")
 
         # Start RX thead.
         self.rx_thread = Thread(target=self.rx_loop)
@@ -1056,8 +1079,8 @@ class UBloxGPS(object):
     def weeksecondstoutc(self, gpsweek, gpsseconds, leapseconds):
         """ Convert time in GPS time (GPS Week, seconds-of-week) to a UTC timestamp """
         epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
-        elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds+leapseconds))
-        timestamp = epoch + elapsed
+        elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds))
+        timestamp = epoch + elapsed - datetime.timedelta(seconds=leapseconds)
         return (timestamp.isoformat(), timestamp)
 
     rx_running = True
@@ -1125,7 +1148,13 @@ class UBloxGPS(object):
                 (time_isotime, time_datetime) = self.weeksecondstoutc(msg.week, msg.iTOW*1.0e-3, msg.leapS)
                 self.write_state('timestamp', time_isotime)
                 self.write_state('datetime', time_datetime)
-                # We now have a 'complete' GPS solution, pass it onto a callback,
+
+                # Update the NTPD Interface, if it exists, and ONLY if we are on a whole-second boundary.
+                if self.ntpd_shm != None and ((msg.iTOW*1.0e-3 - math.floor(msg.iTOW*1.0e-3)) == 0.0):
+                    utc_timestamp = calendar.timegm(time_datetime.utctimetuple())
+                    self.ntpd_shm.update(utc_timestamp)
+
+                # We now have a 'complete' GPS solution, and can pass it onto a callback,
                 # if we were given one when we were initialised.
                 self.rx_counter += 1
 
@@ -1170,7 +1199,7 @@ if __name__ == "__main__":
         print(state)
 
 
-    gps = UBloxGPS(port=sys.argv[1], callback=gps_test, update_rate_ms=500, dynamic_model=DYNAMIC_MODEL_AIRBORNE1G)
+    gps = UBloxGPS(port=sys.argv[1], callback=gps_test, update_rate_ms=500, dynamic_model=DYNAMIC_MODEL_PORTABLE, ntpd_update=True)
 
     try:
         while True:
