@@ -140,9 +140,10 @@ def text_message_string(packet):
 def gps_weeksecondstoutc(gpsweek, gpsseconds, leapseconds):
 	""" Convert time in GPS time (GPS Week, seconds-of-week) to a UTC timestamp """
 	epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
-	elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds+leapseconds))
-	timestamp = epoch + elapsed
+    elapsed = datetime.timedelta(days=(gpsweek*7),seconds=(gpsseconds))
+    timestamp = epoch + elapsed - datetime.timedelta(seconds=leapseconds)
 	return timestamp.isoformat()
+
 
 def gps_telemetry_decoder(packet):
 	""" Extract GPS telemetry data from a packet, and return it as a dictionary. 
@@ -544,8 +545,9 @@ def image_telemetry_habitat_string(packet):
 	else:
 		# Produce a timestamp suitable for use in the habitat upload string.
 		epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
-		elapsed = datetime.timedelta(days=(image_data['week']*7),seconds=(image_data['iTOW']+image_data['leapS']))
-		timestamp = epoch + elapsed
+		elapsed = datetime.timedelta(days=(image_data['week']*7),seconds=(image_data['iTOW']))
+		timestamp = epoch + elapsed - datetime.timedelta(seconds=image_data['leapS'])
+
 		packet_time = timestamp.strftime("%H:%M:%S")
 
 		sentence = "$$%s,%d,%s,%.5f,%.5f,%d,%d,%d,%d,%.2f,%.2f,%.2f,%.5f,%.5f,%.5f,%.5f" % (

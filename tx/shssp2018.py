@@ -31,7 +31,7 @@ image_dir = "./tx_images/"
 
 # Log files.
 text_telemetry_log = "ssp1_text.log"
-bno_log = "ssp1_bno.log"
+imu_log = "ssp1_imu.log"
 gps_log = "ssp1_gps.log"
 
 # Start up Wenet TX Object.
@@ -46,17 +46,23 @@ time.sleep(1)
 # This will loop until it has connected to a BNO055.
 bno = WenetBNO055(port='/dev/bno',
 	update_rate_hz = 5, 
+	callback_decimation = 1,
 	debug_ptr = tx.transmit_text_message, 
-	log_file=bno_log)
+	log_file=imu_log,
+	raw_sensor_data = False)
 
 # Global variable to record if the GPS is giving valid time data.
 # As the GPS can go back to a fix state of 0, yet still give valid time data (for our purposes anyway),
 # We latch this variable to True as soon as we see any valid fix state.
 gps_time_fix = False
 
+# Global variable to tell if we've set the system time to GPS.
+# We need to set the system time at least once manually (using timedatectl), before NTPD can take over.
+system_time_set = False
+
 def handle_gps_data(gps_data):
 	""" Handle GPS data passed to us from a UBloxGPS instance """
-	global tx, bno, gps_time_fix
+	global tx, bno, gps_time_fix, system_time_set
 
 	# Latch gps_time_fix if Fix is OK.
 	if gps_data['gpsFix'] > 0:
@@ -64,6 +70,20 @@ def handle_gps_data(gps_data):
 
 	# Grab a snapshot of orientation data.
 	orientation_data = bno.read_state()
+
+	# If we have GPS lock, set the system clock to it. (Only do this once.)
+	if (gps_data['gpsFix'] == 3) and not system_time_set:
+		dt = gps_data['datetime']
+		try:
+			new_time = dt.strftime('%Y-%m-%d %H:%M:%S')
+			ret_code = os.system("timedatectl set-time \"%s\"" % new_time)
+			if ret_code == 0:
+				tx.transmit_text_message("GPS Debug: System clock set to GPS time %s" % new_time)
+			else:
+				tx.transmit_text_message("GPS Debug: Attempt to set system clock failed!")
+			system_time_set = True
+		except:
+			tx.transmit_text_message("GPS Debug: Attempt to set system clock failed!")
 
 	# Immediately generate and transmit a GPS packet.
 	tx.transmit_gps_telemetry(gps_data)
@@ -80,7 +100,8 @@ try:
 		update_rate_ms = 1000,
 		debug_ptr = tx.transmit_text_message,
 		callback = handle_gps_data,
-		log_file = gps_log
+		log_file = gps_log,
+		ntpd_update = True
 		)
 except Exception as e:
 	tx.transmit_text_message("ERROR: Could not Open GPS - %s" % str(e), repeats=5)
@@ -98,7 +119,6 @@ picam = WenetPiCam.WenetPiCam(callsign=global_callsign,
 # SSDV Image ID.
 image_id = 0
 
-
 # Main 'loop'.
 try:
 	while True:
@@ -108,8 +128,8 @@ try:
 			# The timestamp supplied within the gps data dictionary isn't suitable for use as a filename.
 			# Do the conversion from week/iTOW/leapS to UTC time manually, and produce a suitable timestamp.
 			epoch = datetime.datetime.strptime("1980-01-06 00:00:00","%Y-%m-%d %H:%M:%S")
-			elapsed = datetime.timedelta(days=(gps_data['week']*7),seconds=(gps_data['iTOW']+gps_data['leapS']))
-			timestamp = epoch + elapsed
+			elapsed = datetime.timedelta(days=(gps_data['week']*7),seconds=(gps_data['iTOW']))
+			timestamp = epoch + elapsed - datetime.timedelta(seconds=gps_data['leapS'])
 			capture_time = timestamp.strftime("%Y%m%d-%H%M%SZ")
 		else:
 			# If we don't have valid GPS time, use system time. 
@@ -147,7 +167,7 @@ try:
 			# Get file size in packets.
 			file_size = os.path.getsize(picam_ssdv_filename)/256
 
-			tx.transmit_text_message("Transmitting %d NIR SSDV Packets." % file_size)
+			tx.transmit_text_message("Transmitting %d SSDV Packets." % file_size)
 
 			tx.queue_image_file(picam_ssdv_filename)
 
@@ -155,6 +175,7 @@ try:
 		tx.transmit_image_telemetry(gps_data, orientation_data, image_id, callsign=global_callsign)
 
 		# Dump all the image metadata to a json blob, and write to a file.
+		gps_data.pop('datetime') # Pop out the datetime object, as it isn't serialisable. We still have the timestamp entry...
 		metadata = {'gps': gps_data, 'orientation': orientation_data, 'image_id': image_id}
 		f = open(metadata_filename,'w')
 		f.write(json.dumps(metadata))

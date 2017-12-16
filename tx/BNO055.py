@@ -750,7 +750,9 @@ class WenetBNO055(object):
         'quaternion_z': 0.0,
         'quaternion_w': 0.0,
         # Validity flag. We set this to false as soon as we encounter a serial connection drop.
-        'valid':    False
+        'valid':    False,
+        # Are we capturing raw sensor data as well as just the euler/quaternion data?
+        'raw_sensor_data': False
     }
 
     # Local storage of calibration data, in case of USB connection reset.
@@ -765,7 +767,8 @@ class WenetBNO055(object):
         callback = None,
         callback_decimation = 1,
         debug_ptr = None,
-        log_file = None
+        log_file = None,
+        raw_sensor_data = False
         ):
         """ Initialise a WenetBNO055 Abstraction layer Object 
 
@@ -773,6 +776,7 @@ class WenetBNO055(object):
         port:   Serial port where the BNO055 is connected. The default baud rate of 115200 baud will be used.
                 See 99-usb-serial.rules for suitable udev rules to make a /dev/bno symlink.
         update_rate_hz: The rate at which the internal state vector is updated, in Hz.
+                        NOTE: Deprecated. We now update as fast as we can.
 
         callback: reference to a callback function that will be passed a copy of the above
                   state dictionary at a user-defined rate.
@@ -786,6 +790,9 @@ class WenetBNO055(object):
 
         log_file:   An optional filename in which to log BNO055 state data. Data will be stored as lines of JSON data.
                     Data is written whenever the callback function is called.
+
+        raw_sensor_data:   If set to True, capture all sensor data (i.e. Accelerometer, Gyro, Magnetometer), instead of just
+                    the Euler & Quaternion vectors. This results in a read-time performance hit.
         """
 
         self.port = port
@@ -793,6 +800,7 @@ class WenetBNO055(object):
         self.callback = callback
         self.callback_decimation = callback_decimation
         self.debug_ptr = debug_ptr
+        self.raw_sensor_data = raw_sensor_data
 
         # Open log file, if one has been given.
         if log_file != None:
@@ -895,22 +903,27 @@ class WenetBNO055(object):
         while self.rx_running:
             try:
                 # Grab a complete set of data from the BNO055
-                start = time.time()
+                start_timestamp = time.time()
+                start_isotime = datetime.datetime.utcnow().isoformat()
+                (heading, roll, pitch) = self.bno.read_euler()
+                (quaternion_x, quaternion_y, quaternion_z, quaternion_w) = self.bno.read_quaternion()
+                if self.raw_sensor_data:
+                    (magnet_x, magnet_y, magnet_z) = self.bno.read_magnetometer()
+                    (gyro_x, gyro_y, gyro_z) = self.bno.read_gyroscope()
+                    (accel_x, accel_y, accel_z) = self.bno.read_accelerometer()
+                    (linear_accel_x, linear_accel_y, linear_accel_z) = self.bno.read_linear_acceleration()
+                    (gravity_accel_x, gravity_accel_y, gravity_accel_z) = self.bno.read_gravity()
                 (status, self_test, error) = self.bno.get_system_status(run_self_test=False)
                 (sys, gyro, accel, mag) = self.bno.get_calibration_status()
                 temp = self.bno.read_temp()
-                (heading, roll, pitch) = self.bno.read_euler()
-                (quaternion_x, quaternion_y, quaternion_z, quaternion_w) = self.bno.read_quaternion()
-                (magnet_x, magnet_y, magnet_z) = self.bno.read_magnetometer()
-                (gyro_x, gyro_y, gyro_z) = self.bno.read_gyroscope()
-                (accel_x, accel_y, accel_z) = self.bno.read_accelerometer()
-                (linear_accel_x, linear_accel_y, linear_accel_z) = self.bno.read_linear_acceleration()
-                (gravity_accel_x, gravity_accel_y, gravity_accel_z) = self.bno.read_gravity()
+                
+
 
                 # Write into state dictionary as a block, so users can't request a half-updated state dict.
                 self.state_blockwrite = True # This locks the state writelock on.
 
-                self.write_state('timestamp',datetime.datetime.utcnow().isoformat())
+                self.write_state('timestamp', start_timestamp)
+                self.write_state('isotime', start_isotime)
                 self.write_state('sys_status',status)
                 self.write_state('sys_error',error)
                 self.write_state('sys_cal', sys)
@@ -925,21 +938,23 @@ class WenetBNO055(object):
                 self.write_state('quaternion_y', quaternion_y)
                 self.write_state('quaternion_z', quaternion_z)
                 self.write_state('quaternion_w', quaternion_w)
-                self.write_state('magnet_x', magnet_x)
-                self.write_state('magnet_y', magnet_y)
-                self.write_state('magnet_z', magnet_z)
-                self.write_state('accel_x', accel_x)
-                self.write_state('accel_y', accel_y)
-                self.write_state('accel_z', accel_z)
-                self.write_state('gyro_x', gyro_x)
-                self.write_state('gyro_y', gyro_y)
-                self.write_state('gyro_z', gyro_z)
-                self.write_state('linear_accel_x', linear_accel_x)
-                self.write_state('linear_accel_y', linear_accel_y)
-                self.write_state('linear_accel_z', linear_accel_z)
-                self.write_state('gravity_accel_x', gravity_accel_x)
-                self.write_state('gravity_accel_y', gravity_accel_y)
-                self.write_state('gravity_accel_z', gravity_accel_z)
+                if self.raw_sensor_data:
+                    self.write_state('magnet_x', magnet_x)
+                    self.write_state('magnet_y', magnet_y)
+                    self.write_state('magnet_z', magnet_z)
+                    self.write_state('accel_x', accel_x)
+                    self.write_state('accel_y', accel_y)
+                    self.write_state('accel_z', accel_z)
+                    self.write_state('gyro_x', gyro_x)
+                    self.write_state('gyro_y', gyro_y)
+                    self.write_state('gyro_z', gyro_z)
+                    self.write_state('linear_accel_x', linear_accel_x)
+                    self.write_state('linear_accel_y', linear_accel_y)
+                    self.write_state('linear_accel_z', linear_accel_z)
+                    self.write_state('gravity_accel_x', gravity_accel_x)
+                    self.write_state('gravity_accel_y', gravity_accel_y)
+                    self.write_state('gravity_accel_z', gravity_accel_z)
+                    self.write_state('raw_sensor_data', True)
                 self.write_state('valid', True)
 
                 # Clear write locks.
@@ -979,20 +994,33 @@ class WenetBNO055(object):
 
 
             # Delay.
-            time.sleep(1.0/self.update_rate_hz)
+            # NOTE: Currently we don't delay between reads, in an attempt to read as fast as possible.
+            #time.sleep(1.0/self.update_rate_hz)
 
 if __name__ == "__main__":
     import sys
+    import numpy as np
     port = sys.argv[1]
 
+    last_timestamp = 0
+    diffs = []
+
     def print_state(state):
+        global last_timestamp, diffs
         print(state)
+        time_diff = state['timestamp']-last_timestamp
+        diffs.append(time_diff)
+        print(time_diff)
+        last_timestamp = state['timestamp']
 
-    imu = WenetBNO055(port=port, update_rate_hz = 5, callback=print_state, callback_decimation=5)
+    imu = WenetBNO055(port=port, update_rate_hz = 5, callback=print_state, callback_decimation=1)
 
-    time.sleep(30)
+    time.sleep(10)
 
     imu.close()
+
+    print(diffs)
+    print("Average read time: %.5f" % np.mean(diffs[1:]))
 
 
 
