@@ -35,7 +35,10 @@ imu_log = "ssp1_imu.log"
 gps_log = "ssp1_gps.log"
 
 # Start up Wenet TX Object.
-tx = PacketTX.PacketTX(serial_port='/dev/ttyAMA0', serial_baud=115200, callsign=global_callsign)
+tx = PacketTX.PacketTX(serial_port='/dev/ttyAMA0', 
+					serial_baud=115200, 
+					callsign=global_callsign,
+					log_file=text_telemetry_log)
 tx.start_tx()
 
 # Sleep for a second to let the transmitter fire up.
@@ -45,8 +48,8 @@ time.sleep(1)
 # Initiaise BNO055.
 # This will loop until it has connected to a BNO055.
 bno = WenetBNO055(port='/dev/bno',
-	update_rate_hz = 5, 
-	callback_decimation = 1,
+	update_rate_hz = 5,  # Note that this parameter is un-used now.
+	callback_decimation = 1, # Save IMU data to disk at full rate (~ 10 Hz for just euler/quaternion data)
 	debug_ptr = tx.transmit_text_message, 
 	log_file=imu_log,
 	raw_sensor_data = False)
@@ -111,10 +114,12 @@ except Exception as e:
 
 # Initialise PiCam, using default capture and transmit resolution.
 picam = WenetPiCam.WenetPiCam(callsign=global_callsign, 
+	src_resolution=(1920,1088), 
+	tx_resolution=(1920,1088),
 	num_images=1, 	# Only capture one image at a time.
 	debug_ptr=tx.transmit_text_message, 
-	vertical_flip=False, 
-	horizontal_flip=False)
+	vertical_flip=True, 
+	horizontal_flip=True)
 
 # SSDV Image ID.
 image_id = 0
