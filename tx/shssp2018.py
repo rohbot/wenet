@@ -114,8 +114,8 @@ except Exception as e:
 
 # Initialise PiCam, using default capture and transmit resolution.
 picam = WenetPiCam.WenetPiCam(callsign=global_callsign, 
-	src_resolution=(1920,1088), 
-	tx_resolution=(1920,1088),
+	src_resolution=(3280,2464), 
+	tx_resolution=(1488,1120),
 	num_images=1, 	# Only capture one image at a time.
 	debug_ptr=tx.transmit_text_message, 
 	vertical_flip=True, 
