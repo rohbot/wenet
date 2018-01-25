@@ -12,7 +12,7 @@ TXFREQ=441.200
 
 # CHANGE THE FOLLOWING LINE TO REFLECT THE ACTUAL PATH TO THE TX FOLDER.
 # i.e. it may be /home/username/dev/wenet/tx/
-cd ~/wenet/tx/
+cd /home/pi/wenet/tx/
 
 #Uncomment to initialise a RFM22B
 #python init_rfm22b.py $TXFREQ
