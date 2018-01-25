@@ -3,7 +3,8 @@
 #	SSDV Packet Receiver & Parser
 #	Decodes SSDV packets passed via stdin.
 #
-#	Mark Jessop <vk5qi@rfhead.net>
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
 #
 #	Requires: ssdv (https://github.com/fsphil/ssdv)
 #

@@ -3,7 +3,8 @@
 #	PiCam Transmitter Script - with GPS Data and Logo Overlay.
 #	Capture images from the PiCam, and transmit them.
 #
-#	Mark Jessop <vk5qi@rfhead.net>
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
 #
 
 import PacketTX

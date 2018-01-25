@@ -6,7 +6,8 @@
 #	Run using: 
 #		python rx_tester.py | python rx_ssdv.py 
 #
-#	Mark Jessop <vk5qi@rfhead.net>
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
 #
 
 import time, sys, os

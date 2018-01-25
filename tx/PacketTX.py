@@ -2,6 +2,9 @@
 #
 # Wenet Packet Transmitter Class
 #
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
+#
 # Frames packets (preamble, unique word, checksum)
 # and transmits them out of a serial port.
 #
@@ -9,8 +12,6 @@
 #  NOTE: The RPi UART isn't spot on with its baud rate.
 #  Recent firmware updates have improved the accuracy slightly, but it's still
 #  a bit off. Consequently, 115200 baud is actually around 115177 baud.
-#
-# Mark Jessop <vk5qi@rfhead.net>
 #
 
 

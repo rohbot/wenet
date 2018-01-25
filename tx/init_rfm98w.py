@@ -2,7 +2,8 @@
 #
 # 	RFM98W Initialisation for Wenet Telemetry
 #
-#	2016-11-18 Mark Jessop <vk5qi@rfhead.net>
+#   Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#   Released under GNU GPL v3 or later
 #
 #	Requires pySX127x:
 #	https://github.com/darksidelemm/pySX127x

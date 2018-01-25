@@ -6,7 +6,8 @@
 #   ldpc_enc.c needs to be compiled to a .so before this will work, with:
 #   gcc -fPIC -shared -o ldpc_enc.so ldpc_enc.c
 #
-#   Mark Jessop <vk5qi@rfhead.net>
+#   Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#   Released under GNU GPL v3 or later
 #
 
 import ctypes

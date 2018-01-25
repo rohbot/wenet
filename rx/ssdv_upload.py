@@ -1,6 +1,9 @@
 #!/usr/bin/env python2.7
 #
-#	SSDV Upload Script.
+#	Wenet SSDV Upload Script.
+#
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
 #
 #	Watches the rx_images directory for new images, and uploads the latest image it sees.
 #

@@ -1,6 +1,10 @@
 #!/usr/bin/env python2.7
 #
 #	Wenet GPhoto Wrapper Class.
+#
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
+#
 #	Uses this libgphoto2 wrapper to avoid USB issues: https://github.com/alexdu/piggyphoto
 #	Git clone that repository and copy the 'piggyphoto' directory into wenet/tx/
 #

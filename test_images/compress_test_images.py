@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 #
 # Quick script to resize and SSDV-compress a selection of test images.
+#
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
+#
 # Original resolution: 1488x1120
 #	800x600
 #	640x480

@@ -2,6 +2,9 @@
 #
 # Basic Wenet Text Message / Telemetry Viewer.
 #
+#   Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#   Released under GNU GPL v3 or later
+#
 # Will eventually form the basis of a GUI.
 
 

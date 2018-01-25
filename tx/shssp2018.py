@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 #
-#	SHSSP Payload Main Loop - 2018 Version
+#	Wenet - SHSSP Payload Main Loop - 2018 Version
+#
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
 #	
 #	Requires:
 #		- PiCamera
@@ -8,8 +11,7 @@
 #		- Bosch BNO055 Absolute Orientation Sensor, available at /dev/bno
 #		- Wenet TX Shield, available on /dev/ttyAMA0
 #
-#	Mark Jessop <vk5qi@rfhead.net>
-#
+
 
 import PacketTX
 import WenetPiCam

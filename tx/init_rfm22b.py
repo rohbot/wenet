@@ -2,7 +2,8 @@
 #
 #	RFM22B Initialisation for Horus High Speed Telemetry
 #
-#	2016-03-13 Mark Jessop <vk5qi@rfhead.net>
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
 #
 #	A mash together of a few different libraries, including:
 #		https://github.com/MaxBaex/raspi_rfm22

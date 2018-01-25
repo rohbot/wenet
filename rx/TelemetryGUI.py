@@ -2,6 +2,9 @@
 #
 #   Wenet IMU Data Viewer
 #
+#	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#	Released under GNU GPL v3 or later
+#
 
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
