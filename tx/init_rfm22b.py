@@ -156,6 +156,7 @@ class RFM22B(object):
 	def __init__(self,device=1):
 		self.spi = spidev.SpiDev()
 		self.spi.open(0,device)
+		self.spi.max_speed_hz = 1000000
 
 		if not self.check_connection():
 			print("Init Failed!")
