@@ -309,7 +309,11 @@ def process_udp(udp_packet):
 
 	# Parse JSON, and extract packet.
 	packet_dict = json.loads(udp_packet)
-	packet = packet_dict['packet']
+	# Discard all but Wenet packets
+	if packet_dict['type'] == 'WENET':
+		packet = packet_dict['packet']
+	else:
+		return
 
 	# Decode GPS and IMU packets, and pass onto their respective GUI update functions.
 	packet_type = decode_packet_type(packet)
