@@ -164,6 +164,9 @@ try:
 		if picam_capture_success:
 			picam_ssdv_filename = picam.ssdvify(vis_capture_filename, image_id = image_id)
 
+		if picam_ssdv_filename == "FAIL":
+			tx.transmit_text_message("Error capturing image, continuing.")
+			continue
 
 		# Wait until the transmit queue is empty before pushing in packets.
 		tx.transmit_text_message("Waiting for SSDV TX queue to empty.")
