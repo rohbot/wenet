@@ -17,8 +17,6 @@ from base64 import b64encode
 WENET_IMAGE_UDP_PORT        = 7890
 WENET_TELEMETRY_UDP_PORT    = 7891
 
-
-
 class WENET_PACKET_TYPES:
     TEXT_MESSAGE            = 0x00
     GPS_TELEMETRY           = 0x01

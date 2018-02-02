@@ -47,7 +47,7 @@ def broadcast_telemetry_packet(data):
 		pass
 
 	# Place data into dictionary.
-	data = {'packet': list(bytearray(data))}
+	data = {'type': 'WENET', 'packet': list(bytearray(data))}
 
 	# Send to broadcast if we can.
 	try:
