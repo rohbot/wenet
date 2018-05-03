@@ -14,10 +14,11 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 
 The above image was captured on Horus 42, and downlinked via Wenet. The original downlinked resolution was 1920x1440, and has since been re-sized. The full resolution version is available here: http://rfhead.net/temp/horus_42_full.jpg
 
-## Ubuntu 16.04 RX
-* There is now a guide on how to set up a RX station using Ubuntu within the INSTALL_ubuntu file. This receive approach does not require GNURadio.
+## Usage Instructions
 
-## WARNING: The below information is outdated (I'll update it eventually...). Use the above installation guide.
+Refer to the [wiki](https://github.com/projecthorus/wenet/wiki) pages for installation/usage instructions.
+
+# WARNING: The below information is outdated (I'll update it eventually...). Use the above installation guide.
 
 ## Dependencies
 * Python (2.7, though 3 might work with some small mods)
