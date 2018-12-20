@@ -23,7 +23,7 @@ RXFREQ=441200000
 GAIN=0
 
 # Bias Tee Enable (1) or Disable (0)
-BIAS=1
+BIAS=0
 # Note that this will need the rtl_biast utility available, which means
 # building the rtl-sdr utils from this repo: https://github.com/rtlsdrblog/rtl-sdr
 
@@ -36,7 +36,7 @@ cd ~/wenet/rx/
 
 
 # Receive Flow Type:
-# IQ = Pass complex samples into the fsk demodulator.
+# IQ = Pass complex samples into the fsk demodulator. (Default)
 #      This is suitable for use with RTLSDRs that do not have DC bias issues.
 #      Examples: RTLSDR-Blog v3 Dongles. (anything with a R820T or R820T2 tuner)
 #
@@ -44,9 +44,23 @@ cd ~/wenet/rx/
 #       pass that into the fsk demodulator.
 #       This is useful when the RTLSDR has a DC bias that may affect demodulation.
 #		i.e. RTLSDRs with Elonics E4000 or FitiPower FC0013 tuners.
+#		Note: This requires that the csdr utility be installed: https://github.com/simonyiszk/csdr.git
 RX_FLOW=IQ
-#RX_FLOW=SSB
 
+
+
+
+#
+# Modem Settings - Don't adjust these unless you really need to!
+#
+BAUD_RATE=115177 # Baud rate, in symbols/second.
+OVERSAMPLING=8	 # FSK Demod Oversampling rate
+TUNING_OFFSET=200000 # SDR Tuning Offset, in Hz, to centre the Wenet signal in the fsk demod passband.
+					 # 200 kHz is about right for a 'standard' 115k Wenet TX signal
+
+#
+# Main Script Start... Don't edit anything below this unless you know what you're doing!
+#
 
 # Start up the SSDV Uploader script and push it into the background.
 python ssdv_upload.py $MYCALL &
@@ -56,13 +70,6 @@ python rx_gui.py &
 # Start the Telemetry GUI.
 python TelemetryGUI.py $MYCALL &
 
-#
-# Modem Settings - Don't adjust these unless you really need to!
-#
-BAUD_RATE=115177 # Baud rate, in symbols/second.
-OVERSAMPLING=8	 # FSK Demod Oversampling rate
-TUNING_OFFSET=200000 # SDR Tuning Offset, in Hz, to centre the Wenet signal in the fsk demod passband.
-					 # 200 kHz is about right for a 'standard' 115k Wenet TX signal
 
 # Calculate the SDR sample rate required.
 SDR_RATE=$(($BAUD_RATE * $OVERSAMPLING))
