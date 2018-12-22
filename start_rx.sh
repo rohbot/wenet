@@ -54,9 +54,7 @@ RX_FLOW=IQ
 # Modem Settings - Don't adjust these unless you really need to!
 #
 BAUD_RATE=115177 # Baud rate, in symbols/second.
-OVERSAMPLING=8	 # FSK Demod Oversampling rate
-TUNING_OFFSET=200000 # SDR Tuning Offset, in Hz, to centre the Wenet signal in the fsk demod passband.
-					 # 200 kHz is about right for a 'standard' 115k Wenet TX signal
+OVERSAMPLING=8	 # FSK Demod Oversampling rate. 8X oversampling works best for 115k FSK
 
 #
 # Main Script Start... Don't edit anything below this unless you know what you're doing!
@@ -73,10 +71,14 @@ python TelemetryGUI.py $MYCALL &
 
 # Calculate the SDR sample rate required.
 SDR_RATE=$(($BAUD_RATE * $OVERSAMPLING))
-# Calculate the SDR centre frequency
-RX_SSB_FREQ=$(($RXFREQ - $TUNING_OFFSET))
+# Calculate the SDR centre frequency. 
+# The fsk_demod acquisition window is from Rs/2 to Fs/2 - Rs.
+# Given Fs is Rs * Os  (Os = oversampling), we can calculate the required tuning offset with the equation:
+# Offset = Fcenter - Rs*(Os/4 - 0.25)
+RX_SSB_FREQ=$(echo "$RXFREQ - $BAUD_RATE * ($OVERSAMPLING/4 - 0.25)" | bc)
 
 echo "Using SDR Sample Rate: $SDR_RATE Hz"
+echo "Using SDR Centre Frequency: $RX_SSB_FREQ Hz"
 
 if [ "$BIAS" = "1" ]; then
 	echo "Enabling Bias Tee"
