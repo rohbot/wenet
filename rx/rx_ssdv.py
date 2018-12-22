@@ -83,6 +83,10 @@ while True:
 		broadcast_telemetry_packet(data)
 		print(packet_to_string(data))
 
+	elif packet_type == WENET_PACKET_TYPES.SEC_PAYLOAD_TELEMETRY:
+		broadcast_telemetry_packet(data)
+		print(packet_to_string(data))
+
 	elif packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
 		broadcast_telemetry_packet(data)
 		print(packet_to_string(data))

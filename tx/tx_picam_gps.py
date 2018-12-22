@@ -33,7 +33,7 @@ print("Using Callsign: %s" % callsign)
 
 
 # Start up Wenet TX.
-tx = PacketTX.PacketTX(serial_port=args.txport, serial_baud=args.baudrate, callsign=callsign, log_file="debug.log")
+tx = PacketTX.PacketTX(serial_port=args.txport, serial_baud=args.baudrate, callsign=callsign, log_file="debug.log", udp_listener=55674)
 tx.start_tx()
 
 # Sleep for a second to let the transmitter fire up.

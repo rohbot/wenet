@@ -21,6 +21,7 @@ class WENET_PACKET_TYPES:
     TEXT_MESSAGE            = 0x00
     GPS_TELEMETRY           = 0x01
     ORIENTATION_TELEMETRY   = 0x02
+    SEC_PAYLOAD_TELEMETRY   = 0x03
     IMAGE_TELEMETRY         = 0x54
     SSDV                    = 0x55
     IDLE                    = 0x56
@@ -45,6 +46,8 @@ def packet_to_string(packet):
         return gps_telemetry_string(packet)
     elif packet_type == WENET_PACKET_TYPES.ORIENTATION_TELEMETRY:
         return orientation_telemetry_string(packet)
+    elif packet_type == WENET_PACKET_TYPES.SEC_PAYLOAD_TELEMETRY:
+        return sec_payload_packet_string(packet)
     elif packet_type == WENET_PACKET_TYPES.IMAGE_TELEMETRY:
         return image_telemetry_string(packet)
     elif packet_type == WENET_PACKET_TYPES.SSDV:
@@ -519,6 +522,46 @@ def image_telemetry_string(packet):
             )
 
         return image_data_string
+
+
+def sec_payload_decode(packet):
+    """ Split a secondary payload packet into fields """
+    # We need the packet as a string, convert to a string in case we were passed a list of bytes.
+    packet = str(bytearray(packet))
+    message = {}
+    try:
+        message['id'] = struct.unpack("B",packet[1])[0]
+        message['payload'] = packet[2:]
+    except:
+        return {'error': 'Could not decode secondary payload packet.'}
+
+    return message
+
+
+def sec_payload_packet_string(packet):
+    """ Provide a string representation of a secondary payload packet. """
+
+    _sec_payload = sec_payload_decode(packet)
+
+    # Check if we could split the packet into its expected contents.
+    if 'error' in _sec_payload:
+        return "Secondary Payload Packet: Error - Could not Decode."
+
+    _sec_payload_str = "Secondary Payload Packet (ID: #%d) - " % _sec_payload['id']
+
+    if decode_packet_type(_sec_payload['payload']) == WENET_PACKET_TYPES.TEXT_MESSAGE:
+        # Secondary payload contains a Text Message
+        _message = text_message_string(_sec_payload['payload'])
+        return _sec_payload_str + _message
+
+    else:
+        # Unknown Packet type.
+        _payload_type = decode_packet_type(_sec_payload['payload'])
+
+        return _sec_payload_str + "Payload Type %d" % _payload_type
+
+
+
 
 #
 # Habitat Uploader functions.
