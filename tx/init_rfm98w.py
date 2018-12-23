@@ -22,7 +22,7 @@ import argparse
 from SX127x.LoRa import *
 from SX127x.hardware_piloragateway import HardwareInterface
 
-def setup_rfm98w(frequency=441.200, spi_device=0, shutdown=False):
+def setup_rfm98w(frequency=441.200, spi_device=0, shutdown=False, deviation = 71797):
     # Set this to 1 if your RFM98W is on CE1
     hw = HardwareInterface(spi_device)
 
@@ -42,8 +42,12 @@ def setup_rfm98w(frequency=441.200, spi_device=0, shutdown=False):
     lora.set_freq(frequency)
 
     # Set Deviation (~70 kHz). Signals ends up looking a bit wider than the RFM22B version.
-    lora.set_register(0x04,0x04)
-    lora.set_register(0x05,0x99)
+    _dev_lsbs = int(deviation / 61.03)
+    _dev_msb = _dev_lsbs >> 8
+    _dev_lsb = _dev_lsbs % 256
+
+    lora.set_register(0x04,_dev_msb)
+    lora.set_register(0x05,_dev_lsb)
   
     # Set Transmit power to 50mW.
     # NOTE: If you're in another country you'll probably want to modify this value to something legal...
@@ -58,6 +62,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frequency", default=441.200, type=float, help="Transmit Frequency (MHz). Default = 441.200 MHz.")
     parser.add_argument("--spidevice", default=0, type=int, help="LoRa SPI Device number. Default = 0.")
+    parser.add_argument("--baudrate", default=115200, type=int, help="Wenet TX baud rate. We chose a TX deviation based on this. Default=115200.")
     parser.add_argument("--shutdown",action="store_true", help="Shutdown Transmitter instead of activating it.")
     args = parser.parse_args()
 
@@ -67,7 +72,19 @@ if __name__ == '__main__':
         print("Frequency out of 70cm band, using default.")
         tx_freq = 441.200
 
-    setup_rfm98w(frequency=tx_freq, spi_device=args.spidevice, shutdown=args.shutdown)
+
+    if args.baudrate == 9600:
+        deviation = 4800
+    elif args.baudrate == 4800:
+        deviation = 2400
+    else:
+        deviation = 71797
+
+    print("Using deviation of %d Hz for Baud Rate %d bd." % (deviation, args.baudrate))
+
+    setup_rfm98w(frequency=tx_freq, spi_device=args.spidevice, shutdown=args.shutdown, deviation=deviation)
+
+    print("Frequency set to: %.3f MHz" % tx_freq)
 
     sys.exit(0)
 

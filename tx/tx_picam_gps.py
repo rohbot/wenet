@@ -112,11 +112,11 @@ def post_process_image(filename):
 					gps_state['ground_speed'],
 					gps_state['ascent_rate'])
 		else:
-			gps_string = "No GPS"
+			gps_string = ""
 	except:
 		error_str = traceback.format_exc()
 		self.debug_message("GPS Data Access Failed: %s" % error_str)
-		gps_string = "GPS Failure"
+		gps_string = ""
 
 	# Build up our imagemagick 'convert' command line
 	overlay_str = "convert %s -gamma 0.8 -font Helvetica -pointsize 30 -gravity North " % filename 

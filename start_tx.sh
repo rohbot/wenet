@@ -10,6 +10,10 @@
 MYCALL=N0CALL
 TXFREQ=441.200
 
+# Baud Rate
+# Known working transmit baud rates are 115200 (the preferred default), 9600 and 4800 baud.
+BAUDRATE=115200
+
 # CHANGE THE FOLLOWING LINE TO REFLECT THE ACTUAL PATH TO THE TX FOLDER.
 # i.e. it may be /home/username/dev/wenet/tx/
 cd /home/pi/wenet/tx/
@@ -17,15 +21,11 @@ cd /home/pi/wenet/tx/
 #Uncomment to initialise a RFM22B
 #python init_rfm22b.py $TXFREQ
 # Uncomment for use with a RFM98W
-python init_rfm98w.py --frequency $TXFREQ
+python init_rfm98w.py --frequency $TXFREQ --baudrate $BAUDRATE
 
 # Start the main TX Script.
 # Note, this assumes there is a uBlox GPS available at /dev/ttyACM0
-python tx_picam_gps.py $MYCALL &
-
-# Start SHSSP-specific transmit script.
-# Needs a GPS connected, a BNO055 connected, and a PiCam and USB Webcam (Logitech C920)
-#python shssp.py &
+python tx_picam_gps.py --baudrate $BAUDRATE $MYCALL &
 
 # If you don't want any GPS overlays, you can comment the above line and run:
-# python WenetPiCam.py $MYCALL &
+# python WenetPiCam.py --baudrate $BAUDRATE $MYCALL &

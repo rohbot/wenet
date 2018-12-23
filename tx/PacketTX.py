@@ -530,11 +530,19 @@ class BinaryDebug(object):
 
 if __name__ == "__main__":
     """ Test script, which transmits a text message repeatedly. """
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--txport", default="/dev/ttyAMA0", type=str, help="Transmitter serial port. Defaults to /dev/ttyAMA0")
+    parser.add_argument("--baudrate", default=115200, type=int, help="Transmitter baud rate. Defaults to 115200 baud.")
+    args = parser.parse_args()
     debug_output = False # If True, packet bits are saved to debug.bin as one char per bit.
 
 
     tx = PacketTX(
         debug=debug_output,
+        serial_port=args.txport,
+        serial_baud=args.baudrate,
         udp_listener=55674)
     tx.start_tx()
 

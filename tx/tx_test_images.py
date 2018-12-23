@@ -7,7 +7,7 @@
 #	Released under GNU GPL v3 or later
 #
 
-import PacketTX,  sys, os
+import PacketTX,  sys, os, argparse
 
 # Set to whatever resolution you want to test.
 file_path = "../test_images/%d_raw.ssdv" # _raw, _800x608, _640x480, _320x240
@@ -35,7 +35,12 @@ def transmit_file(filename, tx_object):
 	tx_object.wait()
 
 
-tx = PacketTX.PacketTX(debug=debug_output)
+parser = argparse.ArgumentParser()
+parser.add_argument("--baudrate", default=115200, type=int, help="Transmitter baud rate. Defaults to 115200 baud.")
+args = parser.parse_args()
+
+
+tx = PacketTX.PacketTX(debug=debug_output, serial_baud=args.baudrate)
 tx.start_tx()
 print("TX Started. Press Ctrl-C to stop.")
 try:

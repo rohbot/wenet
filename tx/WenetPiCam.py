@@ -306,6 +306,8 @@ if __name__ == "__main__":
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("callsign", default="N0CALL", help="Payload Callsign")
+	parser.add_argument("--txport", default="/dev/ttyAMA0", type=str, help="Transmitter serial port. Defaults to /dev/ttyAMA0")
+	parser.add_argument("--baudrate", default=115200, type=int, help="Transmitter baud rate. Defaults to 115200 baud.")
 	args = parser.parse_args()
 
 	callsign = args.callsign
@@ -314,10 +316,17 @@ if __name__ == "__main__":
 	def post_process(filename):
 		print("Doing nothing with %s" % filename)
 
-	tx = PacketTX.PacketTX(callsign=callsign)
+	tx = PacketTX.PacketTX(serial_port=args.txport, serial_baud=args.baudrate, callsign=callsign)
 	tx.start_tx()
 
-	picam = WenetPiCam(callsign=callsign, debug_ptr=tx.transmit_text_message)
+
+	picam = WenetPiCam(src_resolution=(1920,1088), 
+		tx_resolution=(1920,1088), 
+		callsign=callsign, 
+		num_images=5, 
+		debug_ptr=tx.transmit_text_message, 
+		vertical_flip=False, 
+		horizontal_flip=False)
 
 	picam.run(destination_directory="./tx_images/", 
 		tx = tx,

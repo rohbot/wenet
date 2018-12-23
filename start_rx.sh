@@ -55,7 +55,11 @@ RX_FLOW=IQ
 # Modem Settings - Don't adjust these unless you really need to!
 #
 BAUD_RATE=115177 # Baud rate, in symbols/second.
-OVERSAMPLING=8	 # FSK Demod Oversampling rate. 8X oversampling works best for 115k FSK
+OVERSAMPLING=8	 # FSK Demod Oversampling rate.
+# Known-Working Modem Settings:
+# 115177 baud (Pi Zero W @ '115200' baud), 8x oversampling.
+# 9600 baud, 100x oversampling.
+# 4800 baud, 200x oversampling.
 
 #
 # Main Script Start... Don't edit anything below this unless you know what you're doing!

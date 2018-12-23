@@ -67,12 +67,12 @@ current_packet_time = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
 # Open temporary file for storing data.
 temp_f = open("rxtemp.bin",'wb')
 
+
 while True:
 	if args.hex:
 		data = sys.stdin.readline().rstrip().decode('hex')
 	else:
 		data = sys.stdin.read(256)
-
 
 	packet_type = decode_packet_type(data)
 
