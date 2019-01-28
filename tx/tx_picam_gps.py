@@ -43,6 +43,15 @@ time.sleep(1)
 max_altitude = 0
 system_time_set = False
 
+# Disable Systemctl NTP synchronization so that we can set the system time on first GPS lock.
+# This is necessary as NTP will refuse to sync the system time to the information we feed it via ntpshm unless
+# the system clock is already within a few seconds.
+ret_code = os.system("timedatectl set-ntp 0")
+if ret_code == 0:
+	tx.transmit_text_message("GPS Debug: Disabled NTP Sync until GPS lock.")
+else:
+	tx.transmit_text_message("GPS Debug: Could not disable NTP sync.")
+
 def handle_gps_data(gps_data):
 	""" Handle GPS data passed to us from the UBloxGPS instance """
 	global max_altitude, tx, system_time_set
@@ -65,6 +74,13 @@ def handle_gps_data(gps_data):
 			else:
 				tx.transmit_text_message("GPS Debug: Attempt to set system clock failed!")
 			system_time_set = True
+
+			# Re-enable NTP synchronisation
+			ret_code = os.system("timedatectl set-ntp 1")
+			if ret_code == 0:
+				tx.transmit_text_message("GPS Debug: Re-enabled NTP sync.")
+			else:
+				tx.transmit_text_message("GPS Debug: Could not enable NTP sync.")
 		except:
 			tx.transmit_text_message("GPS Debug: Attempt to set system clock failed!")
 
