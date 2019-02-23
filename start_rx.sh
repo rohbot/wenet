@@ -3,7 +3,8 @@
 #	Wenet RX-side Initialisation Script
 #	2018-12-20 Mark Jessop <vk5qi@rfhead.net>
 #
-#	This assumes an RTLSDR will be used for RX.
+#	This code mostly assumes an RTLSDR will be used for RX.
+#	For the lower rate variants (4800/9600), GQRX could be used.
 #
 
 # Set CHANGEME to your callsign.
@@ -46,6 +47,14 @@ cd ~/wenet/rx/
 #       This is useful when the RTLSDR has a DC bias that may affect demodulation.
 #		i.e. RTLSDRs with Elonics E4000 or FitiPower FC0013 tuners.
 #		Note: This requires that the csdr utility be installed: https://github.com/simonyiszk/csdr.git
+#
+# GQRX = Take USB audio from GQRX, via a UDP stream on port 7355.
+#		 This assumes that GQRX has been set into 'wide' (24 kHz BW) USB mode, and is 
+#		 streaming samples to UDP:localhost:7355.
+#		 Note 1: This mode will only work for low baud rates (~4800-9600 baud),
+#		 that can fit within a ~20 kHz passband. The baud rate must also be an integer divisor of 48 khz.
+#		 Note 2: When in this mode, all the frequency/gain/bias commands above will be ignored, as GQRX
+#		 has control over the SDR.
 RX_FLOW=IQ
 
 
@@ -55,39 +64,56 @@ RX_FLOW=IQ
 # Modem Settings - Don't adjust these unless you really need to!
 #
 BAUD_RATE=115177 # Baud rate, in symbols/second.
-OVERSAMPLING=8	 # FSK Demod Oversampling rate.
+OVERSAMPLING=8	 # FSK Demod Oversampling rate. Not used in GQRX mode.
 # Known-Working Modem Settings:
 # 115177 baud (Pi Zero W @ '115200' baud), 8x oversampling.
 # 9600 baud, 100x oversampling.
 # 4800 baud, 200x oversampling.
+#BAUD_RATE=4800
+#OVERSAMPLING=200
+
 
 #
 # Main Script Start... Don't edit anything below this unless you know what you're doing!
 #
 
+# Do some checks if we are in GQRX mode.
+if [ "$RX_FLOW" = "GQRX" ]; then
+	if (($BAUD_RATE > 10000)); then
+		echo "Baud rate too high for GQRX mode."
+		exit 1
+	fi
+fi
+
 # Start up the SSDV Uploader script and push it into the background.
-python ssdv_upload.py $MYCALL &
-SSDV_UPLOAD_PID=$!
+#python ssdv_upload.py $MYCALL &
+#SSDV_UPLOAD_PID=$!
 # Start the SSDV RX GUI.
 python rx_gui.py &
+RX_GUI_PID=$!
 # Start the Telemetry GUI.
 python TelemetryGUI.py $MYCALL &
+TELEM_GUI_PID=$!
 
 
-# Calculate the SDR sample rate required.
-SDR_RATE=$(($BAUD_RATE * $OVERSAMPLING))
-# Calculate the SDR centre frequency. 
-# The fsk_demod acquisition window is from Rs/2 to Fs/2 - Rs.
-# Given Fs is Rs * Os  (Os = oversampling), we can calculate the required tuning offset with the equation:
-# Offset = Fcenter - Rs*(Os/4 - 0.25)
-RX_SSB_FREQ=$(echo "$RXFREQ - $BAUD_RATE * ($OVERSAMPLING/4 - 0.25)" | bc)
+# Do some checks if we are in GQRX mode.
+if [ "$RX_FLOW" != "GQRX" ]; then
 
-echo "Using SDR Sample Rate: $SDR_RATE Hz"
-echo "Using SDR Centre Frequency: $RX_SSB_FREQ Hz"
+	# Calculate the SDR sample rate required.
+	SDR_RATE=$(($BAUD_RATE * $OVERSAMPLING))
+	# Calculate the SDR centre frequency. 
+	# The fsk_demod acquisition window is from Rs/2 to Fs/2 - Rs.
+	# Given Fs is Rs * Os  (Os = oversampling), we can calculate the required tuning offset with the equation:
+	# Offset = Fcenter - Rs*(Os/4 - 0.25)
+	RX_SSB_FREQ=$(echo "$RXFREQ - $BAUD_RATE * ($OVERSAMPLING/4 - 0.25)" | bc)
 
-if [ "$BIAS" = "1" ]; then
-	echo "Enabling Bias Tee"
-	rtl_biast -b 1 
+	echo "Using SDR Sample Rate: $SDR_RATE Hz"
+	echo "Using SDR Centre Frequency: $RX_SSB_FREQ Hz"
+
+	if [ "$BIAS" = "1" ]; then
+		echo "Enabling Bias Tee"
+		rtl_biast -b 1 
+	fi
 fi
 
 # Start up the receive chain.
@@ -100,6 +126,16 @@ if [ "$RX_FLOW" = "IQ" ]; then
 	./fsk_demod --cu8 -s --stats=100 2 $SDR_RATE $BAUD_RATE - - 2> >(python fskdemodgui.py --wide) | \
 	./drs232_ldpc - -  -vv | \
 	python rx_ssdv.py --partialupdate 16
+elif [ "$RX_FLOW" = "GQRX" ]; then
+	# GQRX Mode - take 48kHz real samples from GQRX via UDP.
+	# TODO: Check the following netcat command works OK under all OSes...
+	# different netcat versions seem to have different command-line options.
+	# Might need to try: nc -l -u -p 7355 localhost
+	echo "Receiving samples from GQRX on UDP:localhost:7355"
+	nc -l -u localhost 7355 | \
+	./fsk_demod -s --stats=100 -b 1 -u 23500 2 48000 $BAUD_RATE - - 2> >(python fskdemodgui.py --wide) | \
+	./drs232_ldpc - -  -vv | \
+	python rx_ssdv.py --partialupdate 4
 else
 	# If using a RTLSDR that has a DC spike (i.e. either has a FitiPower FC0012 or Elonics E4000 Tuner),
 	# we receive below the centre frequency, and perform USB demodulation.
@@ -114,5 +150,8 @@ else
 
 fi
 
-# Kill off the SSDV Uploader (since that has no GUI and we can't easily close it)
+
+# Kill off the SSDV Uploader and the GUIs
 kill $SSDV_UPLOAD_PID
+kill $RX_GUI_PID
+kill $TELEM_GUI_PID

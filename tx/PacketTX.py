@@ -123,6 +123,7 @@ class PacketTX(object):
         txthread.start()
 
 
+
     def frame_packet(self,packet, fec=False):
         # Ensure payload size is equal to the desired payload length
         if len(packet) > self.payload_length:
@@ -176,7 +177,7 @@ class PacketTX(object):
     def close(self):
         self.transmit_active = False
         self.udp_listener_running = False
-        self.listener_thread.join()
+        #self.listener_thread.join()
 
 
     # Deprecated function
@@ -190,7 +191,7 @@ class PacketTX(object):
 
     # Deprecated function.
     def wait(self):
-        while not self.ssdv_queue.empty():
+        while (not self.ssdv_queue.empty()) and self.transmit_active:
             sleep(0.01)
 
     # New packet queueing and queue querying functions (say that 3 times fast)

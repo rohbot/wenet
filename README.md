@@ -11,6 +11,7 @@ The transmit side is designed to run on a Raspberry Pi, and the UART (/dev/ttyAM
 * v0.4 - SHSSP 2017 Launches (Horus 41 & 42) - 22nd Jan 2017. Added IMU and simultaneous capture from two cameras (Visible and Near-IR). Two payloads were flown, each with two cameras. A third payload (same as on Horus 40) was also flown, which captured the image below. Read more here: http://www.areg.org.au/archives/206739
 * v0.5 - Minor updates. Flown on Horus 43 through Horus 49.
 * v0.6 - Updated to the latest fsk_demod version from codec2-dev. This allows reception without requiring CSDR.
+* v0.7 - More tweaks to the start_rx script to better support lower-rate modes. Update to the latest fsk_demod in the instructions.
 
 ![Image downlinked via Wenet on Horus 42](http://rfhead.net/temp/horus_42_small.jpg)
 
