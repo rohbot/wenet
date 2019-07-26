@@ -13,7 +13,7 @@
 import time, sys, os
 
 # Set to whatever resolution you want to test.
-file_path = "../test_images/%d_raw.ssdv" # _raw, _800x608, _640x480, _320x240
+file_path = "../test_images/%d_800x608.bin" # _raw, _800x608, _640x480, _320x240
 image_numbers = xrange(1,14)
 
 print_as_hex = False

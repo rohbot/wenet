@@ -12,9 +12,11 @@
 import argparse
 import datetime
 import logging
+import json
 import os
 import glob
 import requests
+import socket
 import sys
 import time
 import traceback
@@ -27,6 +29,8 @@ except ImportError:
     # Python 3
     from queue import Queue
 
+WENET_IMAGE_UDP_PORT = 7890
+
 
 class SSDVUploader(object):
     """
@@ -38,8 +42,6 @@ class SSDVUploader(object):
 
 
     SSDV_URL = "http://ssdv.habhub.org/api/v0/packets"
-
-    SSDV_URL = "http://localhost:6000/api/v0/packets"
 
     def __init__(self,
         uploader_callsign = "N0CALL",
@@ -323,10 +325,22 @@ class SSDVUploader(object):
 
 
 
-def telemetry_gui_update(queue, uploaded, discarded):
+def telemetry_gui_update(queued, uploaded, discarded):
     """ Update the SSDV Receiver GUI with information on how many packets have been uploader """
+    message =   {'uploader_status': 'running',
+                'queued': queued,
+                'uploaded': uploaded,
+                'discarded': discarded
+                }
 
-    
+    try:
+        gui_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        gui_socket.sendto(json.dumps(message).encode('ascii'), ("127.0.0.1", WENET_IMAGE_UDP_PORT))
+        gui_socket.close()
+
+    except Exception as e:
+        logging.error("Error updating GUI with uploader status: %s" % str(e))
+
 
 
 
@@ -362,8 +376,9 @@ if __name__ == "__main__":
 
     try:
         while True:
-            time.sleep(10)
-            logging.info("%d packets in uploader queue, %d packets uploaded, %d packets discarded." % (_uploader.get_queue_size(), _uploader.get_upload_count(), _uploader.get_discard_count()))
+            time.sleep(5)
+            logging.debug("%d packets in uploader queue, %d packets uploaded, %d packets discarded." % (_uploader.get_queue_size(), _uploader.get_upload_count(), _uploader.get_discard_count()))
+            telemetry_gui_update(_uploader.get_queue_size(), _uploader.get_upload_count(), _uploader.get_discard_count())
     except KeyboardInterrupt:
         _uploader.close()
 

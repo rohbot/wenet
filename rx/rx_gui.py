@@ -6,21 +6,29 @@
 #   Released under GNU GPL v3 or later
 #
 
+import logging
+import json
+import socket
+import time
 from WenetPackets import *
-import sip, socket, Queue, json
 from threading import Thread
-sip.setapi('QString', 2)
-sip.setapi('QVariant', 2)
+from PyQt5 import QtGui, QtCore, QtWidgets
+from PyQt5.QtCore import Qt
 
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import Qt
+try:
+    # Python 2
+    from Queue import Queue
+except ImportError:
+    # Python 3
+    from queue import Queue
 
 # Auto-resizing Widget, to contain displayed image.
-class Label(QtGui.QLabel):
+class Label(QtWidgets.QLabel):
     def __init__(self, img):
         super(Label, self).__init__()
-        self.setFrameStyle(QtGui.QFrame.StyledPanel)
+        self.setFrameStyle(QtWidgets.QFrame.StyledPanel)
         self.pixmap = QtGui.QPixmap()
+
 
     def paintEvent(self, event):
         size = self.size()
@@ -30,41 +38,58 @@ class Label(QtGui.QLabel):
         # start painting the label from left upper corner
         point.setX((size.width() - scaledPix.width())/2)
         point.setY((size.height() - scaledPix.height())/2)
-        #print point.x(), ' ', point.y()
         painter.drawPixmap(point, scaledPix)
 
-class MyWindow(QtGui.QWidget):
+
+class MyWindow(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(MyWindow, self).__init__(parent)
         self.label = Label(self)
-        self.statusLabel = QtGui.QLabel("No Updates Yet...")
-        self.statusLabel.setFixedHeight(30)
-        self.layout = QtGui.QVBoxLayout(self)
+        self.statusLabel = QtWidgets.QLabel("SSDV: No data yet.")
+        self.statusLabel.setFixedHeight(20)
+        self.uploaderLabel = QtWidgets.QLabel("Uploader: No Data Yet.")
+        self.uploaderLabel.setFixedHeight(20)
+        self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.statusLabel)
+        self.layout.addWidget(self.uploaderLabel)
+        self.rxqueue = Queue(32)
 
-        self.rxqueue = Queue.Queue(16)
 
     @QtCore.pyqtSlot(str)
     def changeImage(self, pathToImage, text_message):
-        print(pathToImage)
+        """ Load and display the supplied image, and update the status text field. """
+        logging.debug("New image: %s" % pathToImage)
         pixmap = QtGui.QPixmap(pathToImage)
         self.label.pixmap = pixmap
-        self.label.repaint()
         self.statusLabel.setText(text_message)
-        print("Repainted")
+        self.label.repaint()
+        logging.debug("Re-painted GUI.")
+
+
+    @QtCore.pyqtSlot(str)
+    def update_upload_status(self, queued, uploaded, discarded):
+        self.uploaderLabel.setText("Uploader: %d queued, %d uploaded, %d discarded." % (queued, uploaded, discarded))
+
 
     def read_queue(self):
+        """ This function is called every 100ms in the QtGui thread. """
         try:
             new_packet = self.rxqueue.get_nowait()
             packet_data = json.loads(new_packet)
-            self.changeImage(packet_data['filename'],packet_data['text'])
+            if 'filename' in packet_data:
+                self.changeImage(packet_data['filename'],packet_data['text'])
+            elif 'uploader_status' in packet_data:
+                self.update_upload_status(packet_data['queued'], packet_data['uploaded'], packet_data['discarded'])
         except:
+            # If there is nothing in the queue we will get a queue.Empty error, so we just return.
             pass
+
 
 # UDP Listener
 udp_listener_running = False
 udp_callback = None
+
 def udp_rx():
     global udp_listener_running, udp_callback
     s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -80,15 +105,23 @@ def udp_rx():
             m = None
         
         if m != None:
-            udp_callback(m[0])
+            try:
+                udp_callback(m[0])
+            except Exception as e:
+                pass
+
+
 
     print("Closing UDP Listener")
     s.close()
 
+
 if __name__ == "__main__":
     import sys
 
-    app = QtGui.QApplication(sys.argv)
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.DEBUG)
+
+    app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName('SSDV Viewer')
 
     main = MyWindow()

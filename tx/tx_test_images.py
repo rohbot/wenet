@@ -10,7 +10,7 @@
 import PacketTX,  sys, os, argparse
 
 # Set to whatever resolution you want to test.
-file_path = "../test_images/%d_raw.ssdv" # _raw, _800x608, _640x480, _320x240
+file_path = "../test_images/%d_raw.bin" # _raw, _800x608, _640x480, _320x240
 image_numbers = xrange(1,14)
 
 debug_output = False # If True, packet bits are saved to debug.bin as one char per bit.
