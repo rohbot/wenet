@@ -86,8 +86,8 @@ if [ "$RX_FLOW" = "GQRX" ]; then
 fi
 
 # Start up the SSDV Uploader script and push it into the background.
-#python ssdv_upload.py $MYCALL &
-#SSDV_UPLOAD_PID=$!
+python ssdvuploader.py $MYCALL &
+SSDV_UPLOAD_PID=$!
 # Start the SSDV RX GUI.
 python rx_gui.py &
 RX_GUI_PID=$!
