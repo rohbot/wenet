@@ -91,9 +91,12 @@ SSDV_UPLOAD_PID=$!
 # Start the SSDV RX GUI.
 python rx_gui.py &
 RX_GUI_PID=$!
+
+# NOTE: The Telemetry GUI is now somewhat deprecated due to us not regularly flying an IMU
+# on the Wenet payload. 
 # Start the Telemetry GUI.
-python TelemetryGUI.py $MYCALL &
-TELEM_GUI_PID=$!
+#python TelemetryGUI.py $MYCALL &
+#TELEM_GUI_PID=$!
 
 
 # Do some checks if we are in GQRX mode.
@@ -154,4 +157,4 @@ fi
 # Kill off the SSDV Uploader and the GUIs
 kill $SSDV_UPLOAD_PID
 kill $RX_GUI_PID
-kill $TELEM_GUI_PID
+#kill $TELEM_GUI_PID

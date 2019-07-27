@@ -5,6 +5,9 @@
 #	Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
 #	Released under GNU GPL v3 or later
 #
+#	NOTE: This is somewhat deprecated as we no longer fly IMUs on Wenet flights.
+#	It may be re-visited in the future if/when required.
+#
 
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
