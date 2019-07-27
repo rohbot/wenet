@@ -9,10 +9,11 @@
 #       [x] Make functional under Python 2 & Python 3
 #       [ ] Completely replace with a browser-based interface.
 #
-
+import argparse
 import logging
 import json
 import socket
+import sys
 import time
 from WenetPackets import *
 from threading import Thread
@@ -122,9 +123,17 @@ def udp_rx():
 
 
 if __name__ == "__main__":
-    import sys
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.DEBUG)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbose", action='store_true', default=False, help="Verbose output")
+    args = parser.parse_args()
+
+    if args.verbose:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=log_level)
 
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName('SSDV Viewer')

@@ -141,11 +141,12 @@ def decode_text_message(packet):
     packet = bytes(bytearray(packet))
     message = {}
     try:
-        message['len'] = struct.unpack("B",packet[1])[0]
+        message['len'] = struct.unpack("B",packet[1:2])[0]
         message['id'] = struct.unpack(">H",packet[2:4])[0]
         message['text'] = packet[4:4+message['len']].decode('ascii')
         message['error'] = 'None'
     except:
+        traceback.print_exc()
         return {'error': 'Could not decode message packet.'}
 
     return message

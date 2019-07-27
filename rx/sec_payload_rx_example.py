@@ -121,6 +121,13 @@ def process_udp(udp_packet):
             # Send it off to be processed.
             process_sec_payload(id=sec_payload['id'], payload=sec_payload['payload'])
 
+        elif decode_packet_type(packet) == WENET_PACKET_TYPES.GPS_TELEMETRY:
+            gps_data = gps_telemetry_decoder(packet)
+
+
+        else:
+            pass
+
 
 def udp_rx_thread():
     """ Listen on a port for UDP broadcast packets, and pass them onto process_udp()"""

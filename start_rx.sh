@@ -34,6 +34,7 @@ BIAS=0
 # i.e. /home/username/wenet/rx/
 cd ~/wenet/rx/
 
+cd ~/Dev/wenet/rx/
 
 
 
@@ -88,15 +89,14 @@ fi
 # Start up the SSDV Uploader script and push it into the background.
 python ssdvuploader.py $MYCALL &
 SSDV_UPLOAD_PID=$!
+
 # Start the SSDV RX GUI.
 python rx_gui.py &
 RX_GUI_PID=$!
 
-# NOTE: The Telemetry GUI is now somewhat deprecated due to us not regularly flying an IMU
-# on the Wenet payload. 
 # Start the Telemetry GUI.
-#python TelemetryGUI.py $MYCALL &
-#TELEM_GUI_PID=$!
+python TelemetryGUI.py --callsign $MYCALL &
+TELEM_GUI_PID=$!
 
 
 # Do some checks if we are in GQRX mode.
@@ -127,7 +127,7 @@ if [ "$RX_FLOW" = "IQ" ]; then
 
 	rtl_sdr -s $SDR_RATE -f $RX_SSB_FREQ -g $GAIN - | \
 	./fsk_demod --cu8 -s --stats=100 2 $SDR_RATE $BAUD_RATE - - 2> >(python fskdemodgui.py --wide) | \
-	./drs232_ldpc - -  -vv | \
+	./drs232_ldpc - -  -vv 2> /dev/null | \
 	python rx_ssdv.py --partialupdate 16
 elif [ "$RX_FLOW" = "GQRX" ]; then
 	# GQRX Mode - take 48kHz real samples from GQRX via UDP.
@@ -137,7 +137,7 @@ elif [ "$RX_FLOW" = "GQRX" ]; then
 	echo "Receiving samples from GQRX on UDP:localhost:7355"
 	nc -l -u localhost 7355 | \
 	./fsk_demod -s --stats=100 -b 1 -u 23500 2 48000 $BAUD_RATE - - 2> >(python fskdemodgui.py --wide) | \
-	./drs232_ldpc - -  -vv | \
+	./drs232_ldpc - -  -vv 2> /dev/null | \
 	python rx_ssdv.py --partialupdate 4
 else
 	# If using a RTLSDR that has a DC spike (i.e. either has a FitiPower FC0012 or Elonics E4000 Tuner),
@@ -148,7 +148,7 @@ else
 	csdr bandpass_fir_fft_cc 0.05 0.45 0.05 | csdr realpart_cf | \
 	csdr gain_ff 0.5 | csdr convert_f_s16 | \
 	./fsk_demod -s --stats=100 2 $SDR_RATE $BAUD_RATE - - 2> >(python fskdemodgui.py --wide) | \
-	./drs232_ldpc - -  -vv | \
+	./drs232_ldpc - -  -vv 2> /dev/null | \
 	python rx_ssdv.py --partialupdate 16
 
 fi
@@ -157,4 +157,4 @@ fi
 # Kill off the SSDV Uploader and the GUIs
 kill $SSDV_UPLOAD_PID
 kill $RX_GUI_PID
-#kill $TELEM_GUI_PID
+kill $TELEM_GUI_PID

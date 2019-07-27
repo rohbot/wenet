@@ -9,28 +9,39 @@
 #	It may be re-visited in the future if/when required.
 #
 
-from pyqtgraph.Qt import QtCore, QtGui
-import pyqtgraph as pg
-import pyqtgraph.opengl as gl
-from threading import Thread
+import argparse
 import traceback
 import socket
 import json
 import sys
-import Queue
 import datetime
 from WenetPackets import *
 import numpy as np
+from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph as pg
+import pyqtgraph.opengl as gl
+from threading import Thread
+
+try:
+    # Python 2
+    from Queue import Queue
+except ImportError:
+    # Python 3
+    from queue import Queue
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--imu", action="store_true", help="Show IMU panels.")
+parser.add_argument("--callsign", type=str, default="N0CALL", help="User callsign for Image Telemetry uploads.")
+parser.add_argument("-v", "--verbose", action='store_true', default=False, help="Verbose output")
+args = parser.parse_args()
 
 
 # Various GUI Settings
 imu_plot_history_size = 60 # Seconds.
 
 
-user_callsign = "N0CALL"
-
-if len(sys.argv) > 1:
-	user_callsign = sys.argv[1]
+user_callsign = args.callsign
 
 app = QtGui.QApplication([])
 
@@ -286,24 +297,33 @@ main_widget = QtGui.QWidget()
 layout = QtGui.QGridLayout()
 main_widget.setLayout(layout)
 
-layout.addWidget(gpsFrame,0,0)
-layout.addWidget(imuFrame,0,1)
-layout.addWidget(imuPlot,0,2,1,2)
-layout.addWidget(packetSnifferFrame,1,0,1,3)
-layout.addWidget(uploadFrame,1,3,1,1)
+if args.imu:
+	layout.addWidget(gpsFrame,0,0)
+	layout.addWidget(imuFrame,0,1)
+	layout.addWidget(imuPlot,0,2,1,2)
+	layout.addWidget(packetSnifferFrame,1,0,1,3)
+	layout.addWidget(uploadFrame,1,3,1,1)
+else:
+	layout.addWidget(gpsFrame,0,0)
+	packetSnifferFrame.setFixedSize(800,250)
+	layout.addWidget(packetSnifferFrame,0,1)
 
 
 mainwin = QtGui.QMainWindow()
-mainwin.setWindowTitle("Wenet GPS/IMU Telemetry Console")
+mainwin.setWindowTitle("Wenet Payload Telemetry Console")
 mainwin.setCentralWidget(main_widget)
-mainwin.resize(1300,400)
+
+if args.imu:
+	mainwin.resize(1300,400)
+else:
+	mainwin.resize(1050,250)
 mainwin.show()
 
 
 #
 # UDP Packet Handling Functions.
 #
-rxqueue = Queue.Queue(32)
+rxqueue = Queue(32)
 
 def process_udp(udp_packet):
 	""" Process received UDP packets. """
@@ -311,7 +331,7 @@ def process_udp(udp_packet):
 	timestamp = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%SZ")
 
 	# Parse JSON, and extract packet.
-	packet_dict = json.loads(udp_packet)
+	packet_dict = json.loads(udp_packet.decode('ascii'))
 	# Discard all but Wenet packets
 	if packet_dict['type'] == 'WENET':
 		packet = packet_dict['packet']
