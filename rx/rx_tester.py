@@ -12,9 +12,12 @@
 
 import time, sys, os
 
+# Check if we are running in Python 2 or 3
+PY3 = sys.version_info[0] == 3
+
 # Set to whatever resolution you want to test.
 file_path = "../test_images/%d_800x608.bin" # _raw, _800x608, _640x480, _320x240
-image_numbers = xrange(1,14)
+image_numbers = range(1,14)
 
 print_as_hex = False
 
@@ -28,12 +31,18 @@ def print_file(filename):
 
 	f = open(filename,'rb')
 
-	for x in range(file_size/256):
+	for x in range(file_size//256):
 		data = f.read(256)
 		if print_as_hex:
 			data = "".join("{:02x}".format(ord(c)) for c in data) + "\n"
 
-		sys.stdout.write(data)
+		if PY3:
+			# Python 3 doesn't let us write bytes to stdout directly.
+			sys.stdout.buffer.write(data)
+		else:
+			# Python 2 does..
+			sys.stdout.write(data)
+
 		sys.stdout.flush()
 		time.sleep(delay_time)
 
