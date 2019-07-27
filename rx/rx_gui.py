@@ -101,6 +101,11 @@ def udp_rx():
     s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     s.settimeout(1)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    except:
+        pass
+        
     s.bind(('',WENET_IMAGE_UDP_PORT))
     print("Started UDP Listener Thread.")
     udp_listener_running = True

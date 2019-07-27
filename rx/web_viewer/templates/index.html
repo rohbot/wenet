@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Wenet Web Interface</title>
+
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/jquery-3.3.1.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='js/socket.io-1.4.5.js') }}"></script>
+    <script type="text/javascript" charset="utf-8">
+
+
+        $(document).ready(function() {
+            // Use the 'update_status' namespace for all of our traffic
+            namespace = '/update_status';
+
+            // Connect to the Socket.IO server.
+            // The connection URL has the following format:
+            //     http[s]://<domain>:<port>[/<namespace>]
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + namespace);
+
+
+            // Handle an image update.
+            socket.on('image_update', function(msg) {
+                var myImageElement = document.getElementById('wenet_image');
+                myImageElement.src = 'latest.jpg?rand=' + Math.random();
+
+                var _new_desc = msg.text;
+                $('#image_data').html(_new_desc); 
+            });
+
+            socket.on('uploader_update', function(msg) {
+
+                var _new_desc = "Uploader Status: " + msg.queued + " Queued, " + msg.uploaded + " Uploaded, " + msg.discarded + " Discarded";
+                $('#uploader_data').html(_new_desc); 
+            });
+
+
+            // Tell the server we are connected and ready for data.
+            socket.on('connect', function() {
+                socket.emit('client_connected', {data: 'I\'m connected!'});
+            });
+
+        });
+    </script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <img src="latest.jpg" id="wenet_image" class="center-block img-responsive"/>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-12'>
+                <div id="image_data">No image data received yet.</div>
+            </div>
+        </div>
+        <div class="row">
+            <div class='col-12'>
+                <div id="uploader_data">No uploader status data received yet.</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

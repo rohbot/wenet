@@ -13,6 +13,7 @@ import codecs
 import json
 import logging
 import os
+import os.path
 import sys
 import datetime
 import argparse
@@ -158,7 +159,7 @@ while True:
 					os.system("mv rxtemp.bin ./rx_images/%s_%s_%d.bin" % (current_packet_time,current_callsign,current_image))
 
 					# Update live displays here.
-					trigger_gui_update("./rx_images/%s_%s_%d.jpg" % (current_packet_time,current_callsign,current_image), packet_as_string)
+					trigger_gui_update(os.path.abspath("./rx_images/%s_%s_%d.jpg" % (current_packet_time,current_callsign,current_image)), packet_as_string)
 
 					# Trigger upload to habhub here.
 			else:
@@ -185,6 +186,6 @@ while True:
 					returncode = os.system("ssdv -d rxtemp.bin rxtemp.jpg 2>/dev/null > /dev/null")
 					if returncode == 0:
 						logging.debug("Wrote out partial update of image ID #%d" % current_image)
-						trigger_gui_update("rxtemp.jpg", packet_as_string)
+						trigger_gui_update(os.path.abspath("rxtemp.jpg"), packet_as_string)
 	else:
 		logging.debug("Unknown Packet Format.")
