@@ -2,8 +2,12 @@
 #
 #   SSDV RX GUI
 #
-#   Copyright (C) 2018  Mark Jessop <vk5qi@rfhead.net>
+#   Copyright (C) 2019  Mark Jessop <vk5qi@rfhead.net>
 #   Released under GNU GPL v3 or later
+#
+#   TODO:
+#       [x] Make functional under Python 2 & Python 3
+#       [ ] Completely replace with a browser-based interface.
 #
 
 import logging
@@ -21,6 +25,7 @@ try:
 except ImportError:
     # Python 3
     from queue import Queue
+
 
 # Auto-resizing Widget, to contain displayed image.
 class Label(QtWidgets.QLabel):

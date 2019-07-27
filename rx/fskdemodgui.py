@@ -12,11 +12,18 @@
 #	<producer>| ./fsk_demod --cu8 -s --stats=100 2 $SDR_RATE $BAUD_RATE - - 2> >(python fskdemodgui.py --wide) | <consumer>
 #
 #
-import sys, time, json, Queue, argparse
+import sys, time, json, argparse
 from threading import Thread
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
+
+try:
+    # Python 2
+    from Queue import Queue
+except ImportError:
+    # Python 3
+    from queue import Queue
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--wide", action="store_true", default=False, help="Alternate wide arrangement of widgets, for placement at bottom of 4:3 screen.")
@@ -28,7 +35,7 @@ history_size = 100 # 10 seconds at 10Hz...
 history_scale = np.linspace((-1*history_size+1)/float(update_rate),0,history_size)
 
 # Input queue
-in_queue = Queue.Queue(1) # 1-element FIFO... 
+in_queue = Queue(1) # 1-element FIFO... 
 
 win = pg.GraphicsWindow()
 win.setWindowTitle('FSK Demodulator Modem Statistics')
@@ -86,7 +93,7 @@ def update_plots():
 		in_data = json.loads(in_data)
 	except Exception as e:
 
-		sys.stderr.write(str(e))
+		sys.stderr.write(str(e).encode('ascii'))
 		return
 
 	# Roll data arrays
@@ -164,7 +171,7 @@ def read_input():
 	global in_queue
 
 	while True:
-		in_line = sys.stdin.readline()
+		in_line = sys.stdin.readline().decode('ascii')
 
 		# Only push actual data into the queue...
 		# This stops sending heaps of empty strings into the queue when fsk_demod closes.
@@ -174,6 +181,7 @@ def read_input():
 
 		if not in_queue.full():
 			in_queue.put_nowait(in_line)
+
 
 read_thread = Thread(target=read_input)
 read_thread.daemon = True # Set as daemon, so when all other threads die, this one gets killed too.

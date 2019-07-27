@@ -40,7 +40,7 @@ cd ~/wenet/rx/
 # Receive Flow Type:
 # IQ = Pass complex samples into the fsk demodulator. (Default)
 #      This is suitable for use with RTLSDRs that do not have DC bias issues.
-#      Examples: RTLSDR-Blog v3 Dongles. (anything with a R820T or R820T2 tuner)
+#      Examples: RTLSDR-Blog v3 Dongles, most Nooelec dongles. (anything with a R820T or R820T2 tuner)
 #
 # SSB = Demodulate the IQ from the SDR as a very wide (400 kHz) USB signal, and
 #       pass that into the fsk demodulator.

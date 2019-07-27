@@ -9,13 +9,22 @@ import struct
 import traceback
 import datetime
 import crcmod
-import httplib
+import logging
 import json
+import requests
+import sys
 from hashlib import sha256
 from base64 import b64encode
 
+# Check if we are running in Python 2 or 3
+PY3 = sys.version_info[0] == 3
+
+
+
+
 WENET_IMAGE_UDP_PORT        = 7890
 WENET_TELEMETRY_UDP_PORT    = 55672
+
 
 class WENET_PACKET_TYPES:
     TEXT_MESSAGE            = 0x00
@@ -26,10 +35,12 @@ class WENET_PACKET_TYPES:
     SSDV                    = 0x55
     IDLE                    = 0x56
 
+
 class WENET_PACKET_LENGTHS:
     GPS_TELEMETRY       = 35
     ORIENTATION_TELEMETRY = 43
     IMAGE_TELEMETRY = 80
+
 
 def decode_packet_type(packet):
     # Convert packet to a list of integers before parsing.
@@ -63,14 +74,27 @@ def packet_to_string(packet):
 
 _ssdv_callsign_alphabet = '-0123456789---ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 def ssdv_decode_callsign(code):
-    code = str(bytearray(code))
+    """ Decode a SSDV callsign from a supplied array of ints,
+        extract from a SSDV packet.
+
+        Args:
+            list: List of integers, corresponding to bytes 2-6 of a SSDV packet.
+
+        Returns:
+            str: Decoded callsign.
+
+    """
+
+    code = bytes(bytearray(code))
     code = struct.unpack('>I',code)[0]
     callsign = ''
+
     while code:
         callsign += _ssdv_callsign_alphabet[code % 40]
-        code /= 40
+        code = code // 40
     
     return callsign
+
 
 def ssdv_packet_info(packet):
     """ Extract various information out of a SSDV packet, and present as a dict. """
@@ -99,6 +123,7 @@ def ssdv_packet_info(packet):
         traceback.print_exc()
         return {'error': "ERROR: %s" % str(e)}
 
+
 def ssdv_packet_string(packet):
     """ Produce a textual representation of a SSDV packet. """
     packet_info = ssdv_packet_info(packet)
@@ -113,12 +138,12 @@ def ssdv_packet_string(packet):
 def decode_text_message(packet):
     """ Extract information from a text message packet """
     # We need the packet as a string, convert to a string in case we were passed a list of bytes.
-    packet = str(bytearray(packet))
+    packet = bytes(bytearray(packet))
     message = {}
     try:
         message['len'] = struct.unpack("B",packet[1])[0]
         message['id'] = struct.unpack(">H",packet[2:4])[0]
-        message['text'] = packet[4:4+message['len']]
+        message['text'] = packet[4:4+message['len']].decode('ascii')
         message['error'] = 'None'
     except:
         return {'error': 'Could not decode message packet.'}
@@ -167,7 +192,7 @@ def gps_telemetry_decoder(packet):
 
     # We need the packet as a string - convert to a string in case we were passed a list of bytes,
     # which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
-    packet = str(bytearray(packet))
+    packet = bytes(bytearray(packet))
     gps_data = {}
 
     # Some basic sanity checking of the packet before we attempt to decode.
@@ -292,7 +317,7 @@ def orientation_telemetry_decoder(packet):
 
     # We need the packet as a string - convert to a string in case we were passed a list of bytes,
     # which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
-    packet = str(bytearray(packet))
+    packet = byts(bytearray(packet))
 
     # Some basic sanity checking of the packet before we attempt to decode.
     if len(packet) < WENET_PACKET_LENGTHS.ORIENTATION_TELEMETRY:
@@ -395,7 +420,7 @@ def image_telemetry_decoder(packet):
 
     # We need the packet as a string - convert to a string in case we were passed a list of bytes,
     # which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
-    packet = str(bytearray(packet))
+    packet = bytes(bytearray(packet))
 
     image_data = {}
 
@@ -527,7 +552,7 @@ def image_telemetry_string(packet):
 def sec_payload_decode(packet):
     """ Split a secondary payload packet into fields """
     # We need the packet as a string, convert to a string in case we were passed a list of bytes.
-    packet = str(bytearray(packet))
+    packet = bytes(bytearray(packet))
     message = {}
     try:
         message['id'] = struct.unpack("B",packet[1])[0]
@@ -613,48 +638,78 @@ def image_telemetry_habitat_string(packet):
             image_data['quaternion_w']
             )
 
-        checksum = crc16_ccitt(sentence[2:])
+        checksum = crc16_ccitt(sentence[2:].encode('ascii'))
         habitat_upload_string = sentence + "*" + checksum + "\n"
 
         return habitat_upload_string
 
-def image_telemetry_upload(packet, user_callsign="N0CALL"):
-    """ Upload an image telemetry packet to habitat. """
+
+
+def image_telemetry_upload(packet, user_callsign="N0CALL", upload_retry_interval=1, upload_retries=5, upload_timeout=10):
+    ''' Upload a UKHAS-standard telemetry sentence to Habitat '''
 
     sentence = image_telemetry_habitat_string(packet)
 
-    sentence_b64 = b64encode(sentence)
+    # Generate payload to be uploaded
+    # b64encode accepts and returns bytes objects.
+    _sentence_b64 = b64encode(sentence.encode('ascii'))
+    _date = datetime.datetime.utcnow().isoformat("T") + "Z"
+    _user_call = user_callsign
 
-    date = datetime.datetime.utcnow().isoformat("T") + "Z"
-
-    data = {
+    _data = {
         "type": "payload_telemetry",
         "data": {
-            "_raw": sentence_b64
+            "_raw": _sentence_b64.decode('ascii') # Convert back to a string to be serialisable
             },
         "receivers": {
-            user_callsign: {
-                "time_created": date,
-                "time_uploaded": date,
+            _user_call: {
+                "time_created": _date,
+                "time_uploaded": _date,
                 },
             },
     }
-    try:
-        c = httplib.HTTPConnection("habitat.habhub.org",timeout=5)
-        c.request(
-            "PUT",
-            "/habitat/_design/payload_telemetry/_update/add_listener/%s" % sha256(sentence_b64).hexdigest(),
-            json.dumps(data),  # BODY
-            {"Content-Type": "application/json"}  # HEADERS
-            )
 
-        response = c.getresponse()
-        return (True, "Image Telemetry: Uploaded to Habitat Successfuly.")
-    except Exception as e:
-        return (False, "Failed to upload to Habitat: %s" % (str(e)))
+    # The URl to upload to.
+    _url = "http://habitat.habhub.org/habitat/_design/payload_telemetry/_update/add_listener/%s" % sha256(_sentence_b64).hexdigest()
 
+    # Delay for a random amount of time between 0 and upload_retry_interval*2 seconds.
+    time.sleep(random.random()*upload_retry_interval*2.0)
 
+    _retries = 0
 
+    # When uploading, we have three possible outcomes:
+    # - Can't connect. No point re-trying in this situation.
+    # - The packet is uploaded successfuly (201 / 403)
+    # - There is a upload conflict on the Habitat DB end (409). We can retry and it might work.
+    while _retries < upload_retries:
+        # Run the request.
+        try:
+            _req = requests.put(_url, data=json.dumps(_data), timeout=upload_timeout)
+        except Exception as e:
+            logging.error("Habitat - Upload Failed: %s" % str(e))
+            return (False, "Failed to upload to Habitat: %s" % (str(e)))
+
+        if _req.status_code == 201 or _req.status_code == 403:
+            # 201 = Success, 403 = Success, sentence has already seen by others.
+            logging.info("Habitat - Uploaded sentence to Habitat successfully")
+            _upload_success = True
+            return (True, "Image Telemetry: Uploaded to Habitat Successfuly.")
+
+        elif _req.status_code == 409:
+            # 409 = Upload conflict (server busy). Sleep for a moment, then retry.
+            logging.info("Habitat - Upload conflict.. retrying.")
+            time.sleep(random.random()*upload_retry_interval)
+            _retries += 1
+
+        else:
+            logging.error("Habitat - Error uploading to Habitat. Status Code: %d." % _req.status_code)
+            return (False, "Failed to upload to Habitat: %s" % (str(e)))
+
+    if _retries == upload_retries:
+        logging.error("Habitat - Upload conflict not resolved with %d retries." % upload_retries)
+        return (False, "Failed to upload to Habitat after %d retries." % (_retries))
+
+    return
 
 
 

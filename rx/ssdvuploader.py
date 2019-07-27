@@ -7,6 +7,7 @@
 #
 #   Somewhat more robust SSDV Uploader class, which can be instantiated from within 
 #   another application and monitored.
+#   Compatible with both Python 2 and Python 3
 #
 
 import argparse
