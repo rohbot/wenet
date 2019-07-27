@@ -34,9 +34,6 @@ BIAS=0
 # i.e. /home/username/wenet/rx/
 cd ~/wenet/rx/
 
-cd ~/Dev/wenet/rx/
-
-
 
 # Receive Flow Type:
 # IQ = Pass complex samples into the fsk demodulator. (Default)
