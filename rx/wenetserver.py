@@ -25,7 +25,7 @@ import datetime
 from threading import Thread, Lock
 from io import BytesIO
 
-WENET_IMAGE_UDP_PORT = 7890
+from WenetPackets import *
 
 # Define Flask Application, and allow automatic reloading of templates for dev
 app = flask.Flask(__name__)
@@ -102,6 +102,27 @@ def update_image(filename, description):
         logging.error("Error loading new image %s - %s" % (filename, str(e)))
 
 
+def handle_telemetry(packet):
+    """ Handle GPS and Text message packets from the wenet receiver """
+
+    # Decode GPS and IMU packets, and pass onto their respective GUI update functions.
+    packet_type = decode_packet_type(packet)
+
+    if packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
+        # GPS data from the payload
+        gps_data = gps_telemetry_decoder(packet)
+        if gps_data['error'] == 'None':
+            flask_emit_event('gps_update', data=gps_data)
+
+    elif packet_type == WENET_PACKET_TYPES.TEXT_MESSAGE:
+        # A text message from the payload.
+        text_data = decode_text_message(packet)
+        if text_data['error'] == 'None':
+            flask_emit_event('text_update', data=text_data)
+    else:
+        # Discard any other packet type.
+        pass
+
 
 def process_udp(packet):
 
@@ -114,6 +135,16 @@ def process_udp(packet):
     elif 'uploader_status' in packet_dict:
         # Information from the uploader process.
         flask_emit_event('uploader_update', data=packet_dict)
+
+    elif 'snr' in packet_dict:
+        # Modem statistics packet
+        flask_emit_event('modem_stats', data=packet_dict)
+
+    elif 'type' in packet_dict:
+        # Generic telemetry packet from the wenet RX.
+        # This could be GPS telemetry, text data, or something else..
+        if packet_dict['type'] == 'WENET':
+            handle_telemetry(packet_dict['packet'])
 
 
 
@@ -154,10 +185,16 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-l", "--listen_port",default=5003,help="Port to run Web Server on. (Default: 5003)")
+    parser.add_argument("-v", "--verbose", action='store_true', help="Enable debug output.")
     args = parser.parse_args()
 
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=logging.DEBUG)
+    if args.verbose:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.ERROR
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=log_level)
 
 
     t = Thread(target=udp_rx_thread)

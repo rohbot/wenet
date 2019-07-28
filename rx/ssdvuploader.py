@@ -30,7 +30,7 @@ except ImportError:
     # Python 3
     from queue import Queue
 
-WENET_IMAGE_UDP_PORT = 7890
+from WenetPackets import WENET_IMAGE_UDP_PORT
 
 
 class SSDVUploader(object):

@@ -29,6 +29,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--hex", action="store_true", help="Take Hex strings as input instead of raw data.")
 parser.add_argument("--partialupdate", default=0, help="Push partial updates every N packets to GUI.")
 parser.add_argument("-v", "--verbose", action='store_true', default=False, help="Verbose output")
+parser.add_argument("--headless", action='store_true', default=False, help="Headless mode - broadcasts additional data via UDP.")
 args = parser.parse_args()
 
 
@@ -55,7 +56,7 @@ def trigger_gui_update(filename, text = "None"):
 
 # Telemetry packets are send via UDP broadcast in case there is other software on the local
 # network that wants them.
-def broadcast_telemetry_packet(data):
+def broadcast_telemetry_packet(data, headless=False):
 	telemetry_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 	# Set up the telemetry socket so it can be re-used.
 	telemetry_socket.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
@@ -77,6 +78,13 @@ def broadcast_telemetry_packet(data):
 		telemetry_socket.sendto(json.dumps(data).encode('ascii'), ('127.0.0.1', WENET_TELEMETRY_UDP_PORT))
 
 	telemetry_socket.close()
+
+
+	if headless:
+		# In headless mode, we also send the above data via the image port.
+		gui_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+		gui_socket.sendto(json.dumps(data).encode('ascii'),("127.0.0.1",WENET_IMAGE_UDP_PORT))
+		gui_socket.close()
 
 
 # State variables
@@ -113,7 +121,7 @@ while True:
 	if packet_type == WENET_PACKET_TYPES.IDLE:
 		continue
 	elif packet_type == WENET_PACKET_TYPES.TEXT_MESSAGE:
-		broadcast_telemetry_packet(data)
+		broadcast_telemetry_packet(data, args.headless)
 		logging.info(packet_to_string(data))
 
 	elif packet_type == WENET_PACKET_TYPES.SEC_PAYLOAD_TELEMETRY:
@@ -121,7 +129,7 @@ while True:
 		logging.info(packet_to_string(data))
 
 	elif packet_type == WENET_PACKET_TYPES.GPS_TELEMETRY:
-		broadcast_telemetry_packet(data)
+		broadcast_telemetry_packet(data, args.headless)
 		logging.info(packet_to_string(data))
 
 	elif packet_type == WENET_PACKET_TYPES.ORIENTATION_TELEMETRY:

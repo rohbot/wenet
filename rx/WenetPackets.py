@@ -318,7 +318,7 @@ def orientation_telemetry_decoder(packet):
 
     # We need the packet as a string - convert to a string in case we were passed a list of bytes,
     # which occurs when we are decoding a packet that has arrived via a UDP-broadcast JSON blob.
-    packet = byts(bytearray(packet))
+    packet = bytes(bytearray(packet))
 
     # Some basic sanity checking of the packet before we attempt to decode.
     if len(packet) < WENET_PACKET_LENGTHS.ORIENTATION_TELEMETRY:
