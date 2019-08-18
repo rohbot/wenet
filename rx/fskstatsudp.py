@@ -73,6 +73,12 @@ class FSKDemodStats(object):
         if type(data) == str:
             # Attempt to parse string.
             try:
+                # Clean up any nan entries, which aren't valid JSON.
+                # For now we just replace these with 0, since they only seem to occur
+                # in the eye diagram data, which we don't use anyway.
+                if 'nan' in data:
+                    data = data.replace('nan', '0.0')
+
                 _data = json.loads(data)
             except Exception as e:
                 self.log_error("FSK Demod Stats - %s" % str(e))
