@@ -70,18 +70,25 @@ class WenetPiCam(object):
 		self.image_delay = image_delay
 		self.callsign = callsign
 		self.tx_resolution = tx_resolution
+		self.src_resolution = src_resolution
+		self.horizontal_flip = horizontal_flip
+		self.vertical_flip = vertical_flip
 
+		self.init_camera()
+
+
+	def init_camera(self):
 		# Attempt to start picam.
 		self.cam = PiCamera()
 
 		# Configure camera.
 		try:
-			self.cam.resolution = src_resolution
+			self.cam.resolution = self.src_resolution
 		except:
 			# Default to Picam 1 max resolution if we cannot set the higher PiCam 2 resolution.
 			self.cam.resolution = (2592,1944)
-		self.cam.hflip = horizontal_flip
-		self.cam.vflip = vertical_flip
+		self.cam.hflip = self.horizontal_flip
+		self.cam.vflip = self.vertical_flip
 		self.cam.exposure_mode = 'auto'
 		self.cam.awb_mode = 'sunlight' # Fixed white balance compensation. 
 		self.cam.meter_mode = 'matrix'
@@ -106,7 +113,7 @@ class WenetPiCam(object):
 	def close(self):
 		self.cam.close()
 
-	def capture(self, filename='picam.jpg'):
+	def capture(self, filename='picam.jpg', quality=90, bayer=False):
 		""" Capture an image using the PiCam
 			
 			Keyword Arguments:
@@ -118,7 +125,7 @@ class WenetPiCam(object):
 			self.debug_message("Capturing Image %d of %d" % (i+1,self.num_images))
 			# Wrap this in error handling in case we lose the camera for some reason.
 			try:
-				self.cam.capture("%s_%d.jpg" % (self.temp_filename_prefix,i))
+				self.cam.capture("%s_%d.jpg" % (self.temp_filename_prefix,i), quality=quality, bayer=bayer)
 				if self.image_delay > 0:
 					sleep(self.image_delay)
 			except Exception as e: # TODO: Narrow this down...
@@ -219,10 +226,24 @@ class WenetPiCam(object):
 			# Attempt to capture.
 			capture_successful = self.capture(capture_filename)
 
-			# If capture was unsuccessful, exit out of this thead, as clearly
-			# the camera isn't working.
+			# If capture was unsuccessful, try again in a little bit
 			if not capture_successful:
-				return
+				sleep(5)
+
+				self.debug_message("Capture failed! Attempting to reset camera...")
+
+				try:
+					self.cam.close()
+				except:
+					self.debug_message("Closing camera object failed.")
+
+				try:
+					self.init_camera()
+				except:
+					self.debug_message("Error initializing camera!")
+					sleep(1)
+
+				continue
 
 			# Otherwise, proceed to post-processing step.
 			if post_process_ptr != None:
@@ -236,9 +257,10 @@ class WenetPiCam(object):
 			# SSDV'ify the image.
 			ssdv_filename = self.ssdvify(capture_filename, image_id=image_id)
 
-			# Check the SSDV Conversion has completed properly. If not, break.
+			# Check the SSDV Conversion has completed properly. If not, continue
 			if ssdv_filename == "FAIL":
-				return
+				sleep(1)
+				continue
 
 
 			# Otherwise, read in the file and push into the TX buffer.
@@ -260,6 +282,8 @@ class WenetPiCam(object):
 			# Increment image ID.
 			image_id = (image_id + 1) % 256
 		# Loop!
+
+		self.debug_message("Uh oh, we broke out of the main thread. This is not good!")
 
 
 	def run(self, destination_directory, tx, post_process_ptr=None, delay = 0, start_id = 0):
