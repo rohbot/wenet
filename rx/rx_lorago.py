@@ -184,6 +184,13 @@ while 1:
           # Write current packet into temp file.
           temp_f.write(data)
           current_packet_count += 1
+          if current_packet_count % 1 == 0:
+            # Run the SSDV decoder and push a partial update to the GUI.
+            temp_f.flush()
+            returncode = os.system("ssdv -d rxtemp.bin rxtemp.jpg 2>/dev/null > /dev/null")
+            if returncode == 0:
+              logging.debug("Wrote out partial update of image ID #%d" % current_image)
+              trigger_gui_update(os.path.abspath("rxtemp.jpg"), packet_as_string)
         SSDV_PAYLOAD = []
   else:
     if reading_ssdv:
